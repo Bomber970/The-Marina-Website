@@ -7,11 +7,10 @@
     --accent: #ff7e5f;
     --font-heading: 'Fredoka One', cursive;
     --font-body: 'Poppins', sans-serif;
-    /* New Table Colors */
-    --color-free: #38c172;     /* Green (FREE) */
-    --color-onhold: #f4b400;   /* Amber (ON HOLD) */
-    --color-confirmed: #6c757d; /* Gray (CONFIRMED/BLOCKED) */
-    --color-vip: #ffd700;      /* Gold */
+    --color-free: #28a745;     /* Green */
+    --color-onhold: #fd7e14;   /* Orange */
+    --color-confirmed: #6c757d; /* Gray */
+    --color-vip: #ffc107;      /* Gold */
 }
 
 body {
@@ -19,149 +18,116 @@ body {
     font-family: var(--font-body);
     background: linear-gradient(to bottom, var(--ocean-deep), var(--ocean-light));
     color: var(--white);
-    height: 100vh;
-    overflow: hidden;
+    min-height: 100vh;
+    overflow-x: hidden;
     display: flex;
     justify-content: center;
     align-items: center;
-    position: relative;
 }
 
-/* --- BUBBLES --- */
+/* --- BUBBLES ANIMATION --- */
 .bubbles-container {
-    position: fixed; 
-    top: 0; left: 0; width: 100%; height: 100%;
-    z-index: 1; 
-    pointer-events: none; 
-    overflow: hidden;
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; pointer-events: none; overflow: hidden;
 }
-
 .bubble {
     position: absolute; bottom: -50px; 
-    background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0.05));
-    border: 1px solid rgba(255, 255, 255, 0.4);
-    box-shadow: inset 0 0 10px rgba(255, 255, 255, 0.2);
-    border-radius: 50%;
-    pointer-events: auto; 
-    cursor: crosshair;
-    animation: rise infinite ease-in;
-    transition: transform 0.1s;
+    background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.3); border-radius: 50%;
+    animation: rise 15s infinite ease-in;
 }
-.bubble:active { transform: scale(0.9); }
+.bubble:nth-child(1) { left: 10%; width: 40px; height: 40px; animation-duration: 10s; }
+.bubble:nth-child(2) { left: 20%; width: 20px; height: 20px; animation-duration: 12s; }
+.bubble:nth-child(3) { left: 35%; width: 50px; height: 50px; animation-duration: 18s; }
+.bubble:nth-child(4) { left: 50%; width: 30px; height: 30px; animation-duration: 11s; }
+.bubble:nth-child(5) { left: 65%; width: 60px; height: 60px; animation-duration: 16s; }
+.bubble:nth-child(6) { left: 80%; width: 25px; height: 25px; animation-duration: 13s; }
+@keyframes rise { 0% { bottom:-50px; transform:translateX(0); opacity:0; } 50% { opacity:1; } 100% { bottom:110%; transform:translateX(-20px); opacity:0; } }
 
-/* Bubbles config - (animation CSS remains the same) */
-
-/* --- LAYOUT WRAPPER --- (remains the same) */
+/* --- MAIN LAYOUT --- */
 .main-wrapper {
-    display: flex; flex-direction: column; justify-content: space-evenly; align-items: center;
-    height: 95vh; width: 95%; max-width: 1400px;
-    position: relative; z-index: 2;
-    pointer-events: none;
+    position: relative; z-index: 2; width: 90%; max-width: 1200px;
+    display: flex; flex-direction: column; align-items: center; gap: 20px; padding: 20px 0;
 }
-.interactive-element, .interactive-element button, .interactive-element .team-card, .table-scroll-wrapper, .modal {
-    pointer-events: auto;
+.hero img { max-height: 250px; width: auto; filter: drop-shadow(0 0 10px rgba(0,0,0,0.5)); }
+
+.team-row-single { display: flex; flex-wrap: wrap; justify-content: center; gap: 15px; }
+.team-card {
+    background: rgba(0,30,50,0.5); backdrop-filter: blur(5px); padding: 15px; border-radius: 10px;
+    width: 150px; text-align: center; border: 1px solid rgba(255,255,255,0.2);
 }
+.team-photo { width: 60px; height: 60px; border-radius: 50%; object-fit: cover; margin-bottom: 5px; }
 
-/* --- HERO, TEAM, ABOUT, BUTTONS, FOOTER, MODALS --- (remains the same) */
+#about-section { text-align: center; max-width: 800px; background: rgba(0,0,0,0.2); padding: 20px; border-radius: 10px; }
 
+.actions { display: flex; flex-wrap: wrap; gap: 15px; justify-content: center; }
+.btn {
+    padding: 10px 20px; border-radius: 25px; border: none; font-weight: bold; cursor: pointer; transition: transform 0.2s;
+}
+.btn:hover { transform: scale(1.05); }
+.btn-primary { background: var(--sand); color: var(--ocean-deep); }
+.btn-secondary { background: transparent; border: 2px solid var(--sand); color: var(--sand); }
+.btn-accent { background: var(--accent); color: white; }
+.btn-danger { background: #dc3545; color: white; padding: 5px 10px; }
+.btn-small { padding: 5px 10px; font-size: 0.8rem; }
 
-/* --- TABLE MAP STYLING (COORDINATE LAYOUT) --- */
+/* --- MODALS (CRITICAL FIXES) --- */
+.modal {
+    display: none; /* HIDDEN BY DEFAULT */
+    position: fixed; z-index: 9999; left: 0; top: 0; width: 100%; height: 100%;
+    background-color: rgba(0,0,0,0.85); backdrop-filter: blur(5px);
+    justify-content: center; align-items: center; /* Center content */
+}
+.modal-content {
+    background: var(--white); color: var(--ocean-deep); padding: 25px; border-radius: 15px;
+    width: 90%; max-width: 500px; max-height: 90vh; overflow-y: auto; position: relative;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+}
+.modal-content.large-modal { max-width: 950px; }
+.modal-content.fullscreen-content { width: 95%; height: 95%; max-width: none; max-height: none; }
+.close { position: absolute; right: 20px; top: 15px; font-size: 28px; cursor: pointer; color: #555; }
+
+/* --- MAP STYLING (IMAGE BASED) --- */
 .map-container {
-    width: 100%; 
-    max-width: 900px;
-    aspect-ratio: 1.8 / 1; /* Aspect ratio based on the marinamap.png image dimensions (approx) */
-    
-    /* Set the floorplan image as the background */
+    position: relative; width: 100%; height: 500px;
+    background-color: #eee; border: 2px solid #ccc; border-radius: 5px;
+    /* Use the uploaded image */
     background-image: url('marinamap.png'); 
-    background-size: contain; /* Ensure the full map is visible */
-    background-repeat: no-repeat;
-    background-color: black; /* Background color matching the map borders */
-    
-    border: 2px solid #ccc;
-    border-radius: 10px;
-    position: relative; /* CRITICAL: Allows absolute positioning of tables */
+    background-size: contain; background-repeat: no-repeat; background-position: center;
     overflow: hidden;
-    box-sizing: border-box;
 }
-
-/* The layout container is now the main drop zone */
-.table-layout {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-}
+.table-layout { width: 100%; height: 100%; position: absolute; top:0; left:0; }
 
 .table-element-wrapper {
-    /* CRITICAL: Absolute position based on x,y percentages */
-    position: absolute;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    /* Use data-table-id for D&D logic */
+    position: absolute; display: flex; justify-content: center; align-items: center;
+    /* Wrapper handles positioning */
 }
-
-/* DRAG & DROP SPECIFIC STYLES */
-.table-element-wrapper.drag-over {
-    border: 2px dashed var(--ocean-mid);
-    background-color: rgba(46, 139, 192, 0.2);
-}
-
 .table-element {
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    font-weight: bold;
-    color: var(--white);
-    transition: all 0.3s ease;
-    border: 3px solid rgba(0,0,0,0.2);
-    box-shadow: 2px 2px 5px rgba(0,0,0,0.3);
-    cursor: pointer;
+    display: flex; flex-direction: column; justify-content: center; align-items: center;
+    background: rgba(0,0,0,0.6); color: white; font-weight: bold; font-size: 0.8rem;
+    cursor: pointer; border: 2px solid transparent; text-align: center;
     user-select: none;
-    text-align: center;
-    
-    pointer-events: none; /* Default: ensures click events pass to the wrapper for customer view */
-
-    &[draggable="true"] {
-        cursor: grab;
-        pointer-events: auto; /* Only allow drag to start on the table */
-    }
 }
+/* Table Sizes matching map spots */
+.table-4 { width: 50px; height: 35px; border-radius: 4px; }
+.table-2 { width: 30px; height: 30px; border-radius: 50%; }
+.table-vip { width: 60px; height: 40px; border-radius: 6px; border: 2px solid var(--color-vip); }
 
-/* Table Dimensions (Must be fixed pixel size or percentage based on map, px is safer) */
-.table-4 {
-    width: 60px; 
-    height: 35px;
-    border-radius: 5px; /* Rectangular tables to match map */
-    font-size: 0.8rem;
-}
-.table-2 {
-    width: 30px; 
-    height: 30px;
-    border-radius: 50%;
-    font-size: 0.75rem;
-}
-.table-vip {
-    width: 65px; 
-    height: 40px; 
-    border-radius: 10px;
-    border-color: var(--color-vip) !important;
-    background-color: rgba(255, 215, 0, 0.2) !important;
-    box-shadow: 0 0 15px var(--color-vip);
-}
+/* Status Colors */
+.status-free { background-color: var(--color-free); }
+.status-on_hold { background-color: var(--color-onhold); }
+.status-confirmed { background-color: var(--color-confirmed); cursor: not-allowed; }
+.selected { border-color: var(--ocean-mid); box-shadow: 0 0 10px var(--ocean-mid); transform: scale(1.1); }
 
+/* Dragging Styles */
+.table-element[draggable="true"] { cursor: grab; }
+.table-element-wrapper.drag-over { background: rgba(0, 255, 0, 0.3); border: 2px dashed green; }
 
-/* Status colors - (remains the same) */
-.status-free { background-color: var(--color-free); color: white; }
-.status-on_hold { background-color: var(--color-onhold); color: white; }
-.status-confirmed { background-color: var(--color-confirmed); color: white; cursor: not-allowed !important; }
-
-/* Selection state - (remains the same) */
-.table-element.selected {
-    box-shadow: 0 0 15px 5px var(--ocean-mid);
-    border-color: var(--ocean-mid) !important;
-    transform: scale(1.1);
-}
-/* Table Text - (remains the same) */
+/* Input fields */
+input, select, textarea { width: 100%; padding: 8px; margin-bottom: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
+.data-table { width: 100%; border-collapse: collapse; margin-bottom: 15px; }
+.data-table th, .data-table td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+.data-table th { background-color: var(--ocean-mid); color: white; }
+.tab-btn { background: none; border: none; padding: 10px; cursor: pointer; color: #aaa; font-weight: bold; }
+.tab-btn.active { color: var(--ocean-mid); border-bottom: 3px solid var(--ocean-mid); }
+.tab-content { display: none; }
+.tab-content.active { display: block; }
+.super-only { display: none; }
