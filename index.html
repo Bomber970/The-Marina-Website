@@ -61,44 +61,33 @@
     </div>
 
     <div id="reservation-modal" class="modal">
-        <div class="modal-content large-modal">
+        <div class="modal-content">
             <span class="close" onclick="closeModal('reservation-modal')">&times;</span>
             <h2>Table Reservation</h2>
+            <p>Reserve a table for your party.</p>
             
             <form id="reservation-form">
-                <div id="reservation-details">
-                    <h3>1. Your Details</h3>
-                    <div style="display:flex; gap:10px;">
-                        <div style="flex:1;">
-                            <label>Name:</label> <input type="text" id="res-name" required>
-                        </div>
-                        <div style="flex:1;">
-                            <label>Group Size (2-20):</label> <input type="number" id="res-size" min="2" max="20" required onchange="updateRequiredTables()">
-                        </div>
+                <label>Name:</label> 
+                <input type="text" id="res-name" required>
+                
+                <div style="display:flex; gap:10px;">
+                    <div style="flex:1;">
+                        <label>Group Size:</label> 
+                        <input type="number" id="res-size" min="1" max="50" required>
                     </div>
-                    <div style="display:flex; gap:10px;">
-                        <div style="flex:1;">
-                            <label>Phone:</label> <input type="text" id="res-phone" required>
-                        </div>
-                        <div style="flex:1;">
-                            <label>Date & Time:</label> <input type="datetime-local" id="res-date" required>
-                        </div>
+                    <div style="flex:1;">
+                        <label>Phone:</label> 
+                        <input type="text" id="res-phone" required>
                     </div>
-                    
-                    <h3>2. Choose Your Table(s)</h3>
-                    <div id="table-requirements" style="font-weight:bold; margin-bottom:10px;">Enter group size above to start.</div>
-                    <p id="capacity-warning" class="error-text" style="display:none; color:#ff7e5f;">⚠️ Not enough capacity selected.</p>
-                    <p id="vip-warning" class="error-text" style="display:none; color:gold;">⚠️ VIP Table Selected ($250 Fee).</p>
                 </div>
 
-                <div id="map-container" class="map-container">
-                    <div class="table-layout" id="map-container-layout">
-                        </div>
-                </div>
+                <label>Date & Time:</label> 
+                <input type="datetime-local" id="res-date" required>
+
+                <label>Notes / Preferences (Optional):</label>
+                <textarea id="res-notes" rows="2" placeholder="e.g. Balcony preferred, allergies..."></textarea>
                 
-                <div style="margin-top: 15px; text-align: center;">
-                    <button type="submit" class="btn btn-primary" id="submit-reservation-btn" disabled>Confirm Reservation</button>
-                </div>
+                <button type="submit" class="btn btn-primary">Confirm Reservation</button>
             </form>
         </div>
     </div>
@@ -168,14 +157,16 @@
                 <button class="tab-btn" onclick="switchTab('tab-menu-view')">Menu View</button>
                 <button class="tab-btn super-only" onclick="switchTab('tab-financials')">Finance</button>
                 <button class="tab-btn super-only" onclick="switchTab('tab-edit-site')">Edit Team</button>
-                <button class="tab-btn super-only" onclick="switchTab('tab-tables')">Table Management</button>
             </div>
             
             <div id="tab-reservations" class="tab-content active">
-                <h3>New Reservations</h3>
-                <table class="data-table"><thead><tr><th>Name</th><th>Date</th><th>Size</th><th>Tables</th><th>Status</th></tr></thead><tbody id="admin-res-body-onhold"></tbody></table>
-                <h3>Confirmed</h3>
-                <table class="data-table"><thead><tr><th>Name</th><th>Date</th><th>Size</th><th>Tables</th><th>Status</th></tr></thead><tbody id="admin-res-body-confirmed"></tbody></table>
+                <h3>Incoming Reservations</h3>
+                <div class="table-scroll-wrapper">
+                    <table class="data-table">
+                        <thead><tr><th>Name</th><th>Date/Time</th><th>Size</th><th>Phone</th><th>Notes</th><th>Action</th></tr></thead>
+                        <tbody id="admin-res-body"></tbody>
+                    </table>
+                </div>
             </div>
 
             <div id="tab-menu-view" class="tab-content"><div id="admin-menu-view-list"></div></div>
@@ -186,16 +177,9 @@
                 <button onclick="saveFinancials()" class="btn btn-primary">Save Changes</button>
             </div>
 
-            <div id="tab-edit-site" class="tab-content"><div id="edit-team-container"></div><button onclick="saveTeamChanges()" class="btn btn-primary">Save Changes</button></div>
-
-            <div id="tab-tables" class="tab-content">
-                <h3>Table Status Overview</h3>
-                <div class="map-container" id="admin-map-container"><div class="table-layout" id="admin-map-container-layout"></div></div>
-                <p>Click table to view reservation. Drag tables to move (SADMIN Only).</p>
-                <div id="table-admin-actions"></div>
-                <hr>
-                <div id="table-config-editor"></div>
-                <button onclick="saveTableConfiguration()" class="btn btn-accent">Save Config</button>
+            <div id="tab-edit-site" class="tab-content">
+                <div id="edit-team-container"></div>
+                <button onclick="saveTeamChanges()" class="btn btn-primary">Save Changes</button>
             </div>
         </div>
     </div>
