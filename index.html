@@ -14,12 +14,13 @@
         <div class="bubble"></div><div class="bubble"></div><div class="bubble"></div>
         <div class="bubble"></div><div class="bubble"></div><div class="bubble"></div>
         <div class="bubble"></div><div class="bubble"></div><div class="bubble"></div>
+        <div class="bubble"></div><div class="bubble"></div><div class="bubble"></div>
     </div>
 
     <div class="main-wrapper">
         
         <header class="hero interactive-element">
-            <img src="Marina-Square-Samdy-Shores-v1.png" alt="The Marina Logo" class="main-logo" onerror="this.style.display='none'; document.write('<h1 style=\'font-size:3rem;\'>The Marina</h1>')">
+            <img src="Marina-Square-Samdy-Shores-v1.png" alt="The Marina Logo" class="main-logo">
         </header>
 
         <section id="team-section" class="interactive-element">
@@ -64,30 +65,12 @@
         <div class="modal-content">
             <span class="close" onclick="closeModal('reservation-modal')">&times;</span>
             <h2>Table Reservation</h2>
-            <p>Reserve a table for your party.</p>
-            
             <form id="reservation-form">
-                <label>Name:</label> 
-                <input type="text" id="res-name" required>
-                
-                <div style="display:flex; gap:10px;">
-                    <div style="flex:1;">
-                        <label>Group Size:</label> 
-                        <input type="number" id="res-size" min="1" max="50" required>
-                    </div>
-                    <div style="flex:1;">
-                        <label>Phone:</label> 
-                        <input type="text" id="res-phone" required>
-                    </div>
-                </div>
-
-                <label>Date & Time:</label> 
-                <input type="datetime-local" id="res-date" required>
-
-                <label>Notes / Preferences (Optional):</label>
-                <textarea id="res-notes" rows="2" placeholder="e.g. Balcony preferred, allergies..."></textarea>
-                
-                <button type="submit" class="btn btn-primary">Confirm Reservation</button>
+                <label>Name:</label> <input type="text" id="res-name" required>
+                <label>Phone:</label> <input type="text" id="res-phone" required>
+                <label>Date:</label> <input type="datetime-local" id="res-date" required>
+                <label>Size:</label> <input type="number" id="res-size" min="1" max="20" required>
+                <button type="submit" class="btn btn-primary">Book Now</button>
             </form>
         </div>
     </div>
@@ -116,21 +99,35 @@
             <form id="application-form">
                 <label>Discord Name:</label> 
                 <input type="text" id="app-discord" placeholder="Example#1234" required>
+                
                 <label>First & Last Name:</label> 
                 <input type="text" id="app-ic-name" required>
+                
                 <div style="display:flex; gap:10px;">
-                    <div style="flex:1;"><label>State ID:</label> <input type="number" id="app-id" required></div>
-                    <div style="flex:1;"><label>Phone:</label> <input type="text" id="app-phone" required></div>
+                    <div style="flex:1;">
+                        <label>State ID:</label> 
+                        <input type="number" id="app-id" required>
+                    </div>
+                    <div style="flex:1;">
+                        <label>Phone Number:</label> 
+                        <input type="text" id="app-phone" required>
+                    </div>
                 </div>
-                <label>Availability:</label>
+
+                <label>Availability (Storm):</label>
                 <select id="app-storm">
                     <option value="EU">EU Storm</option>
                     <option value="NA">NA Storm</option>
                     <option value="AU">AU Storm</option>
                     <option value="Flexible">Flexible / Mixed</option>
                 </select>
-                <label>Experience:</label> <textarea id="app-exp" rows="3"></textarea>
-                <label>Motivation:</label> <textarea id="app-mot" rows="3"></textarea>
+
+                <label>Experience:</label> 
+                <textarea id="app-exp" rows="3" placeholder="Previous experience?"></textarea>
+
+                <label>Motivation:</label> 
+                <textarea id="app-mot" rows="3" placeholder="Why The Marina?"></textarea>
+
                 <button type="submit" class="btn btn-accent">Submit Application</button>
             </form>
         </div>
@@ -160,21 +157,40 @@
             </div>
             
             <div id="tab-reservations" class="tab-content active">
-                <h3>Incoming Reservations</h3>
-                <div class="table-scroll-wrapper">
-                    <table class="data-table">
-                        <thead><tr><th>Name</th><th>Date/Time</th><th>Size</th><th>Phone</th><th>Notes</th><th>Action</th></tr></thead>
-                        <tbody id="admin-res-body"></tbody>
-                    </table>
-                </div>
+                <table class="data-table">
+                    <thead><tr><th>Name</th><th>Date</th><th>Size</th><th>Phone</th></tr></thead>
+                    <tbody id="admin-res-body">
+                        <tr><td colspan="4">Loading...</td></tr>
+                    </tbody>
+                </table>
             </div>
 
-            <div id="tab-menu-view" class="tab-content"><div id="admin-menu-view-list"></div></div>
+            <div id="tab-menu-view" class="tab-content">
+                <div id="admin-menu-view-list"></div>
+            </div>
 
             <div id="tab-financials" class="tab-content">
-                <div class="table-scroll-wrapper"><table class="data-table"><tbody id="financial-body"></tbody></table></div>
-                <button onclick="addNewProductRow()" class="btn btn-small">+ Add Item</button>
-                <button onclick="saveFinancials()" class="btn btn-primary">Save Changes</button>
+                <div class="table-scroll-wrapper">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Category</th>
+                                <th>Item Name</th>
+                                <th>Contents / Notes</th>
+                                <th>Cost</th>
+                                <th>Price</th>
+                                <th>Profit</th>
+                                <th>Status</th>
+                                <th>X</th>
+                            </tr>
+                        </thead>
+                        <tbody id="financial-body"></tbody>
+                    </table>
+                </div>
+                <div style="margin-top:10px;">
+                    <button onclick="addNewProductRow()" class="btn btn-small">+ Add Item</button>
+                    <button onclick="saveFinancials()" class="btn btn-primary">Save Changes</button>
+                </div>
             </div>
 
             <div id="tab-edit-site" class="tab-content">
@@ -186,6 +202,7 @@
 
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
+    
     <script src="script.js"></script>
 </body>
 </html>
