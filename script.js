@@ -33,7 +33,6 @@ let currentUserRole = null;
 let selectedTables = [];
 
 // --- DEFAULT TABLE CONFIGURATION (FALLBACK/FIRST LOAD) ---
-// This is the structure you can now edit in the Superadmin tab
 const DEFAULT_TABLES_CONFIG = [
     // Two-Person Tables (T7, T8, T9, T19, T20)
     { id: 7, capacity: 2, isVIP: false, gridArea: '1 / 1 / span 1 / span 1' },
@@ -87,15 +86,16 @@ const defaultFinancials = [
 
 /* ================= INITIAL LOAD (FIREBASE) ================= */
 document.addEventListener('DOMContentLoaded', () => {
-    if (!db) return; // Stop if Firebase failed to initialize
+    if (!db) return; 
 
     // 0. Load Table Configuration (NEW)
     db.collection("marina_data").doc("tables").onSnapshot((doc) => {
-        if (doc.exists && doc.data().config) {
+        if (doc.exists && doc.data().config && doc.data().config.length > 0) {
             allTablesConfig = doc.data().config;
             renderMap('map-container', true); 
             if(currentUserRole === 'superadmin') renderEditTableConfigForm();
         } else {
+            // Initial save of the default map configuration
             db.collection("marina_data").doc("tables").set({ config: DEFAULT_TABLES_CONFIG });
             allTablesConfig = DEFAULT_TABLES_CONFIG;
         }
@@ -133,7 +133,7 @@ document.addEventListener('DOMContentLoaded', () => {
             reservations.push(data);
         });
         
-        // Rerender customer map and admin components
+        // Rerender map whenever reservation data changes
         renderMap('map-container', true); 
         if(currentUserRole) {
             renderAdminReservations();
@@ -233,12 +233,19 @@ function getTableStatus(tableId) {
 
 /**
  * Renders the table layout into the specified container using CSS Grid.
+ * ADDED SAFEGUARD: Checks if allTablesConfig is available before rendering.
  */
 function renderMap(containerId, isCustomerView) {
     const layout = document.getElementById(`${containerId}-layout`);
     if (!layout) return; 
 
     layout.innerHTML = '';
+    
+    // SAFEGUARD: If config is empty, display loading message and exit.
+    if (allTablesConfig.length === 0) {
+        layout.innerHTML = '<p style="color: black; margin-top: 10px;">Loading table map...</p>';
+        return;
+    }
 
     allTablesConfig.forEach(table => {
         const status = getTableStatus(table.id);
@@ -318,7 +325,6 @@ function handleTableClick(tableId) {
 
 /**
  * Customer function: Updates the required capacity display.
- * FIXED: Calculation error fixed. Uses Math.ceil(size / max_capacity) for tables needed.
  */
 function updateRequiredTables() {
     const sizeInput = document.getElementById('res-size');
@@ -330,8 +336,8 @@ function updateRequiredTables() {
         return;
     }
     
-    const maxCapacityPerTable = allTablesConfig.reduce((max, table) => Math.max(max, table.capacity), 0);
-    const tablesNeeded = Math.ceil(size / maxCapacityPerTable); // Assumes we use only the largest available tables
+    const maxCapacityPerTable = allTablesConfig.length > 0 ? allTablesConfig.reduce((max, table) => Math.max(max, table.capacity), 0) : 4; 
+    const tablesNeeded = Math.ceil(size / maxCapacityPerTable);
 
     selectedTables = [];
     
@@ -426,12 +432,71 @@ document.getElementById('reservation-form').addEventListener('submit', (e) => {
     selectedTables = [];
 });
 
-// ... (Rental and Application Forms remain the same, Discord logging is preserved)
+// Rental Form
+document.getElementById('rental-form').addEventListener('submit', (e) => {
+    e.preventDefault();
+    const rental = {
+        name: document.getElementById('rent-name').value,
+        type: document.getElementById('rent-type').value,
+        staff: document.getElementById('rent-staffing').value
+    };
 
+    const embed = {
+        title: "🥂 New Venue Rental Inquiry",
+        color: 15844367, // Gold
+        fields: [
+            { name: "Organization/Name", value: rental.name, inline: true },
+            { name: "Event Type", value: rental.type, inline: true },
+            { name: "Staffing Required?", value: rental.staff, inline: false }
+        ],
+        footer: { text: "The Marina Automated System" }
+    };
+    sendToDiscord(WEBHOOK_RENTAL, embed);
+
+    alert("Rental Inquiry Sent!");
+    closeModal('rental-modal');
+    e.target.reset();
+});
+
+// Application Form
+document.getElementById('application-form').addEventListener('submit', (e) => {
+    e.preventDefault();
+    const app = {
+        discord: document.getElementById('app-discord').value,
+        icName: document.getElementById('app-ic-name').value,
+        id: document.getElementById('app-id').value,
+        phone: document.getElementById('app-phone').value,
+        storm: document.getElementById('app-storm').value,
+        exp: document.getElementById('app-exp').value,
+        mot: document.getElementById('app-mot').value,
+        timestamp: firebase.firestore.FieldValue.serverTimestamp()
+    };
+
+    if (db) db.collection("applications").add(app);
+
+    const embed = {
+        title: "📝 New Job Application",
+        color: 3447003, // Blue
+        fields: [
+            { name: "Discord", value: app.discord, inline: true },
+            { name: "IC Name", value: app.icName, inline: true },
+            { name: "State ID", value: app.id, inline: true },
+            { name: "Phone", value: app.phone, inline: true },
+            { name: "Availability", value: app.storm + " Storm", inline: false },
+            { name: "Experience", value: app.exp || "None provided", inline: false },
+            { name: "Motivation", value: app.mot || "None provided", inline: false }
+        ],
+        footer: { text: "The Marina Automated System" }
+    };
+    sendToDiscord(WEBHOOK_APPS, embed);
+
+    alert("Application Submitted! Good luck.");
+    closeModal('application-modal');
+    e.target.reset();
+});
 
 /* ================= ADMIN FUNCTIONS ================= */
 
-// FIXED: Admin login restored.
 function attemptLogin() {
     const input = document.getElementById('admin-code').value;
     const errorMsg = document.getElementById('login-error');
@@ -446,15 +511,155 @@ function attemptLogin() {
         errorMsg.textContent = "Invalid Code.";
         return;
     }
-    closeModal('login-modal');
-    document.getElementById('admin-code').value = '';
-    errorMsg.textContent = '';
-    openModal('admin-panel');
+    // Only attempt to open the panel modal if the user role was successfully set
+    if (currentUserRole) {
+        closeModal('login-modal');
+        document.getElementById('admin-code').value = '';
+        errorMsg.textContent = '';
+        openModal('admin-panel');
+    }
 }
 
-// ... (Logout and setupAdminPanel remain the same)
+function logout() {
+    currentUserRole = null;
+    closeModal('admin-panel');
+    alert("Logged out.");
+}
 
-// === SUPERADMIN: TABLE CONFIGURATION (NEW) ===
+function setupAdminPanel() {
+    const title = document.getElementById('admin-title');
+    const superTabs = document.querySelectorAll('.super-only');
+    
+    // Always call these, but renderMap will contain the safeguard
+    renderAdminReservations();
+    renderAdminMenuView();
+
+    if (currentUserRole === 'superadmin') {
+        title.textContent = "Admin Panel (Superadmin)";
+        superTabs.forEach(el => el.style.display = 'block');
+        renderFinancialsTable();
+        renderEditTeamForm();
+        // Render the table config form when Superadmin logs in
+        renderEditTableConfigForm();
+    } else {
+        title.textContent = "Admin Panel";
+        superTabs.forEach(el => el.style.display = 'none');
+    }
+    renderMap('admin-map-container', false);
+}
+
+function switchTab(tabId) {
+    document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+    document.getElementById(tabId).classList.add('active');
+    
+    const buttons = document.querySelectorAll('.tab-btn');
+    buttons.forEach(btn => {
+        if(btn.getAttribute('onclick').includes(tabId)) btn.classList.add('active');
+    });
+
+    if (tabId === 'tab-tables') {
+        renderMap('admin-map-container', false);
+        renderEditTableConfigForm(); // Refresh the editor when switching to this tab
+        document.getElementById('table-admin-actions').innerHTML = '';
+    }
+}
+
+function renderAdminReservations() {
+    const tbodyOnhold = document.getElementById('admin-res-body-onhold');
+    const tbodyConfirmed = document.getElementById('admin-res-body-confirmed');
+    tbodyOnhold.innerHTML = '';
+    tbodyConfirmed.innerHTML = '';
+
+    const onHoldRes = reservations.filter(res => res.status === 'on_hold');
+    const confirmedRes = reservations.filter(res => res.status === 'confirmed');
+
+    if (onHoldRes.length === 0) {
+        tbodyOnhold.innerHTML = '<tr><td colspan="6">No pending requests.</td></tr>';
+    } else {
+        onHoldRes.forEach(res => {
+            tbodyOnhold.innerHTML += `<tr>
+                <td>${res.docId ? res.docId.substring(0, 5) : 'N/A'}...</td>
+                <td>${res.name}</td>
+                <td>${res.date ? res.date.replace('T', ' ') : '-'}</td>
+                <td>${res.size}</td>
+                <td>${res.tables.join(', ')}</td>
+                <td><span style="color:orange;">${res.status.toUpperCase()}</span></td>
+            </tr>`;
+        });
+    }
+    
+    if (confirmedRes.length === 0) {
+        tbodyConfirmed.innerHTML = '<tr><td colspan="6">No confirmed reservations.</td></tr>';
+    } else {
+        confirmedRes.forEach(res => {
+            tbodyConfirmed.innerHTML += `<tr>
+                <td>${res.docId ? res.docId.substring(0, 5) : 'N/A'}...</td>
+                <td>${res.name}</td>
+                <td>${res.date ? res.date.replace('T', ' ') : '-'}</td>
+                <td>${res.size}</td>
+                <td>${res.tables.join(', ')}</td>
+                <td><span style="color:green;">${res.status.toUpperCase()}</span></td>
+            </tr>`;
+        });
+    }
+}
+
+// Admin Table Management Actions (Remains the same)
+function showAdminTableActions(tableId) {
+    const activeRes = reservations.find(res => res.tables && res.tables.includes(tableId));
+    const actionsDiv = document.getElementById('table-admin-actions');
+    
+    if (!activeRes) {
+        actionsDiv.innerHTML = `<p>Table T${tableId} is FREE.</p>`;
+        return;
+    }
+
+    const resDetails = `
+        <h3>Manage Reservation: Table T${tableId}</h3>
+        <p>Status: <strong>${activeRes.status.toUpperCase()}</strong></p>
+        <p>Name: ${activeRes.name} (Size: ${activeRes.size})</p>
+        <p>Date: ${activeRes.date ? activeRes.date.replace('T', ' ') : 'Unknown'}</p>
+        <p>Selected Tables: ${activeRes.tables.join(', ')}</p>
+        <p>VIP Fee: ${activeRes.isVip ? 'Yes ($250)' : 'No'}</p>
+    `;
+    
+    let buttons = '';
+    if (activeRes.status === 'on_hold') {
+        buttons = `
+            <button class="btn btn-primary" onclick="confirmReservation('${activeRes.docId}')">Confirm (Set Gray)</button>
+            <button class="btn btn-danger" onclick="rejectReservation('${activeRes.docId}')">Reject & Free Up</button>
+        `;
+    } else if (activeRes.status === 'confirmed') {
+        buttons = `
+            <button class="btn btn-danger" onclick="rejectReservation('${activeRes.docId}')">Delete Confirmation / Free Up</button>
+        `;
+    }
+    
+    actionsDiv.innerHTML = resDetails + buttons;
+}
+
+function confirmReservation(docId) {
+    if (confirm("Are you sure you want to CONFIRM this reservation? The table(s) will be permanently blocked (GRAY).")) {
+        db.collection("reservations").doc(docId).update({ status: 'confirmed' })
+            .then(() => {
+                alert("Reservation confirmed! Table(s) are now Confirmed (Gray).");
+                document.getElementById('table-admin-actions').innerHTML = '';
+            });
+    }
+}
+
+function rejectReservation(docId) {
+    if (confirm("Are you sure you want to REJECT or DELETE this reservation? The table(s) will be freed up.")) {
+        db.collection("reservations").doc(docId).delete()
+            .then(() => {
+                alert("Reservation deleted. Table(s) are now FREE.");
+                document.getElementById('table-admin-actions').innerHTML = '';
+            });
+    }
+}
+
+// === SUPERADMIN: TABLE CONFIGURATION (FOR EASY EDITING) ===
 
 function renderEditTableConfigForm() {
     const container = document.getElementById('table-config-editor');
@@ -470,7 +675,7 @@ function renderEditTableConfigForm() {
                     <option value="true" ${table.isVIP ? 'selected' : ''}>Yes</option>
                     <option value="false" ${!table.isVIP ? 'selected' : ''}>No</option>
                 </select><br>
-                Grid Area: <input type="text" value="${table.gridArea}" onchange="updateTableConfig(${index}, 'gridArea', this.value)" placeholder="row / col / span / span">
+                Grid Area: <input type="text" value="${table.gridArea}" onchange="updateTableConfig(${index}, 'gridArea', this.value)" placeholder="row / col / row-span / col-span">
             </div>
         `;
     });
@@ -487,9 +692,88 @@ function saveTableConfiguration() {
         db.collection("marina_data").doc("tables").update({ config: allTablesConfig })
             .then(() => {
                 alert("Table configuration updated successfully!");
-                // Reload team and menu data (optional, but ensures fresh sync)
-                if (currentUserRole) setupAdminPanel();
             })
             .catch(err => alert("Error saving table configuration: " + err.message));
     }
+}
+
+// === ADMIN MENU/FINANCIALS/TEAM (Logic remains the same) ===
+function renderAdminMenuView() {
+    const div = document.getElementById('admin-menu-view-list');
+    div.innerHTML = '<ul style="list-style:none; padding:0;">';
+    financialData.forEach(item => { 
+        div.innerHTML += `<li style="padding:5px; border-bottom:1px solid #eee;">
+            <strong>${item.name}</strong> - ${item.contents}
+        </li>`; 
+    });
+    div.innerHTML += '</ul>';
+}
+
+function renderFinancialsTable() {
+    const tbody = document.getElementById('financial-body');
+    tbody.innerHTML = '';
+    financialData.forEach((item, index) => {
+        const profit = item.price - item.cost;
+        const profitClass = profit >= 0 ? 'profit-positive' : 'profit-negative';
+        
+        tbody.innerHTML += `
+            <tr>
+                <td><input type="text" value="${item.cat}" onchange="updateFinData(${index}, 'cat', this.value)" style="width:70px"></td>
+                <td><input type="text" value="${item.name}" onchange="updateFinData(${index}, 'name', this.value)"></td>
+                <td><input type="text" value="${item.contents}" onchange="updateFinData(${index}, 'contents', this.value)"></td>
+                <td><input type="number" value="${item.cost}" onchange="updateFinData(${index}, 'cost', this.value)" style="width:60px"></td>
+                <td><input type="number" value="${item.price}" onchange="updateFinData(${index}, 'price', this.value)" style="width:60px"></td>
+                <td class="${profitClass}">$${profit}</td>
+                <td><input type="text" value="${item.status}" onchange="updateFinData(${index}, 'status', this.value)" style="width:100px"></td>
+                <td><button class="btn btn-danger btn-small" onclick="deleteProduct(${index})">X</button></td>
+            </tr>
+        `;
+    });
+}
+
+function updateFinData(index, key, value) {
+    if(key === 'cost' || key === 'price') value = parseFloat(value);
+    financialData[index][key] = value;
+}
+
+function addNewProductRow() {
+    financialData.push({ cat: "New", name: "Item", contents: "Desc", cost: 0, price: 0, status: "Active" });
+    renderFinancialsTable();
+}
+
+function deleteProduct(index) {
+    if(confirm("Delete item?")) {
+        financialData.splice(index, 1);
+        renderFinancialsTable();
+    }
+}
+
+function saveFinancials() {
+    db.collection("marina_data").doc("financials").update({ items: financialData })
+    .then(() => alert("Financials Saved to Database!"))
+    .catch(err => alert("Error saving: " + err.message));
+}
+
+function renderEditTeamForm() {
+    const container = document.getElementById('edit-team-container');
+    container.innerHTML = '';
+    teamData.forEach((member, index) => {
+        container.innerHTML += `
+            <div style="border:1px solid #ccc; padding:5px; margin-bottom:5px; border-radius:5px; background:#f9f9f9; font-size:0.8rem;">
+                <strong>Staff Member #${index + 1}</strong><br>
+                Name: <input type="text" value="${member.name}" onchange="updateTeamData(${index}, 'name', this.value)"><br>
+                Title: <input type="text" value="${member.title}" onchange="updateTeamData(${index}, 'title', this.value)"><br>
+                Desc: <input type="text" value="${member.desc}" onchange="updateTeamData(${index}, 'desc', this.value)"><br>
+                Img URL: <input type="text" value="${member.img}" onchange="updateTeamData(${index}, 'img', this.value)">
+            </div>
+        `;
+    });
+}
+
+function updateTeamData(index, key, value) { teamData[index][key] = value; }
+
+function saveTeamChanges() {
+    db.collection("marina_data").doc("team").update({ members: teamData })
+    .then(() => alert("Team Updated in Database!"))
+    .catch(err => alert("Error saving: " + err.message));
 }
