@@ -33,27 +33,37 @@ let currentUserRole = null;
 let selectedTables = [];
 
 // --- DEFAULT TABLE CONFIGURATION (FALLBACK/FIRST LOAD) ---
+// REVISED LAYOUT: Cleaner placement within the 5x4 grid.
 const DEFAULT_TABLES_CONFIG = [
-    // Two-Person Tables (T7, T8, T9, T19, T20)
+    // Two-Person Tables (T7, T8, T9, T19, T20) - Along the bar/wall
     { id: 7, capacity: 2, isVIP: false, gridArea: '1 / 1 / span 1 / span 1' },
     { id: 8, capacity: 2, isVIP: false, gridArea: '2 / 1 / span 1 / span 1' },
     { id: 9, capacity: 2, isVIP: false, gridArea: '3 / 1 / span 1 / span 1' },
-    { id: 19, capacity: 2, isVIP: false, gridArea: '1 / 5 / span 1 / span 1' },
-    { id: 20, capacity: 2, isVIP: false, gridArea: '2 / 5 / span 1 / span 1' },
-    // Four-Person Tables
-    { id: 1, capacity: 4, isVIP: false, gridArea: '1 / 2 / span 1 / span 1' },
-    { id: 2, capacity: 4, isVIP: false, gridArea: '1 / 3 / span 1 / span 1' },
-    { id: 3, capacity: 4, isVIP: false, gridArea: '2 / 2 / span 1 / span 1' },
+    { id: 19, capacity: 2, isVIP: false, gridArea: '4 / 1 / span 1 / span 1' },
+    { id: 20, capacity: 2, isVIP: false, gridArea: '4 / 5 / span 1 / span 1' },
+    
+    // Four-Person Tables (Main Dining Area)
+    { id: 1, capacity: 4, isVIP: false, gridArea: '1 / 3 / span 1 / span 1' },
+    { id: 2, capacity: 4, isVIP: false, gridArea: '1 / 4 / span 1 / span 1' },
+    { id: 3, capacity: 4, isVIP: false, gridArea: '1 / 5 / span 1 / span 1' },
+    
     { id: 4, capacity: 4, isVIP: false, gridArea: '2 / 3 / span 1 / span 1' },
-    { id: 5, capacity: 4, isVIP: false, gridArea: '3 / 2 / span 1 / span 1' },
-    { id: 6, capacity: 4, isVIP: false, gridArea: '3 / 3 / span 1 / span 1' },
-    { id: 10, capacity: 4, isVIP: false, gridArea: '4 / 2 / span 1 / span 1' },
-    { id: 11, capacity: 4, isVIP: false, gridArea: '4 / 3 / span 1 / span 1' },
-    // VIP Tables (T15, T16, T17, T18)
-    { id: 15, capacity: 4, isVIP: true, gridArea: '4 / 4 / span 1 / span 1' },
-    { id: 16, capacity: 4, isVIP: true, gridArea: '4 / 5 / span 1 / span 1' },
-    { id: 17, capacity: 4, isVIP: true, gridArea: '3 / 4 / span 1 / span 1' },
-    { id: 18, capacity: 4, isVIP: true, gridArea: '3 / 5 / span 1 / span 1' },
+    { id: 5, capacity: 4, isVIP: false, gridArea: '2 / 4 / span 1 / span 1' },
+    { id: 6, capacity: 4, isVIP: false, gridArea: '2 / 5 / span 1 / span 1' },
+    
+    { id: 10, capacity: 4, isVIP: false, gridArea: '3 / 3 / span 1 / span 1' },
+    { id: 11, capacity: 4, isVIP: false, gridArea: '3 / 4 / span 1 / span 1' },
+    { id: 12, capacity: 4, isVIP: false, gridArea: '3 / 5 / span 1 / span 1' },
+    
+    // VIP Tables (T15-T18) - Central/Special Area
+    { id: 15, capacity: 4, isVIP: true, gridArea: '4 / 2 / span 1 / span 1' },
+    { id: 16, capacity: 4, isVIP: true, gridArea: '4 / 3 / span 1 / span 1' },
+    { id: 17, capacity: 4, isVIP: true, gridArea: '4 / 4 / span 1 / span 1' },
+    { id: 18, capacity: 4, isVIP: true, gridArea: '2 / 2 / span 1 / span 1' }, // Moved T18 slightly higher
+
+    // Added a couple of spare tables for future use
+    { id: 21, capacity: 4, isVIP: false, gridArea: '1 / 2 / span 1 / span 1' },
+    { id: 22, capacity: 2, isVIP: false, gridArea: '3 / 2 / span 1 / span 1' },
 ];
 
 const defaultTeam = [
@@ -336,8 +346,13 @@ function updateRequiredTables() {
         return;
     }
     
-    const maxCapacityPerTable = allTablesConfig.length > 0 ? allTablesConfig.reduce((max, table) => Math.max(max, table.capacity), 0) : 4; 
-    const tablesNeeded = Math.ceil(size / maxCapacityPerTable);
+    // Calculate the maximum capacity available in the current configuration
+    const maxCapacityPerTable = allTablesConfig.length > 0 
+        ? allTablesConfig.reduce((max, table) => Math.max(max, table.capacity), 0) 
+        : 4; 
+        
+    // Calculate the minimum number of tables needed based on the largest table capacity
+    const tablesNeeded = Math.ceil(size / maxCapacityPerTable); 
 
     selectedTables = [];
     
