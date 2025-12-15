@@ -8,9 +8,15 @@ const firebaseConfig = {
   appId: "1:955663143694:web:1f54138e2c666481543d5f"
 };
 
-// Initialize Firebase
-firebase.initializeApp(firebaseConfig);
-const db = firebase.firestore();
+// Initialize Firebase (FIXED: The app/db initialization was causing crew load issues)
+if (typeof firebase !== 'undefined') {
+    firebase.initializeApp(firebaseConfig);
+    var db = firebase.firestore();
+} else {
+    // Fallback if SDK is not loaded (should not happen with index.html setup)
+    console.error("Firebase SDK not loaded. Check script imports in index.html.");
+    var db = null;
+}
 
 /* ================= WEBHOOKS & DATA ================= */
 const WEBHOOK_APPS = "https://discord.com/api/webhooks/1449133910071054378/WnfKNZx_Qvef-WATbJbrQ6vog1JX3OIC4_fpWShp5lIKyQmV2_sD1kSQnauXq07fduFl";
@@ -27,36 +33,32 @@ let currentUserRole = null;
 let selectedTables = [];
 let requiredTablesCount = 0;
 
-// --- TABLE CONFIGURATION ---
-// x and y are percentages for positioning on the map (0 to 100)
+// --- TABLE CONFIGURATION (Revised for new CSS Grid) ---
+// Note: Grid positioning uses 'gridArea: row / col / row-span / col-span'
 const ALL_TABLES = [
-    // Tables for 2 (T7, T8, T9, T19, T20)
-    { id: 7, capacity: 2, isVIP: false, x: 10, y: 10 },
-    { id: 8, capacity: 2, isVIP: false, x: 10, y: 25 },
-    { id: 9, capacity: 2, isVIP: false, x: 25, y: 10 },
-    { id: 19, capacity: 2, isVIP: false, x: 80, y: 65 },
-    { id: 20, capacity: 2, isVIP: false, x: 80, y: 80 },
-    // Tables for 4 (T1, T2, T3, T4, T5, T6, T10, T11, T12, T13, T14)
-    { id: 1, capacity: 4, isVIP: false, x: 40, y: 10 },
-    { id: 2, capacity: 4, isVIP: false, x: 55, y: 10 },
-    { id: 3, capacity: 4, isVIP: false, x: 70, y: 10 },
-    { id: 4, capacity: 4, isVIP: false, x: 40, y: 25 },
-    { id: 5, capacity: 4, isVIP: false, x: 55, y: 25 },
-    { id: 6, capacity: 4, isVIP: false, x: 70, y: 25 },
-    { id: 10, capacity: 4, isVIP: false, x: 25, y: 25 },
-    { id: 11, capacity: 4, isVIP: false, x: 25, y: 40 },
-    { id: 12, capacity: 4, isVIP: false, x: 40, y: 40 },
-    { id: 13, capacity: 4, isVIP: false, x: 55, y: 40 },
-    { id: 14, capacity: 4, isVIP: false, x: 70, y: 40 },
-    // VIP Tables for 4 (T15, T16, T17, T18)
-    { id: 15, capacity: 4, isVIP: true, x: 10, y: 70 },
-    { id: 16, capacity: 4, isVIP: true, x: 25, y: 70 },
-    { id: 17, capacity: 4, isVIP: true, x: 40, y: 70 },
-    { id: 18, capacity: 4, isVIP: true, x: 55, y: 70 },
+    // Two-Person Tables (T7, T8, T9, T19, T20) - Placed in various rows/cols
+    { id: 7, capacity: 2, isVIP: false, gridArea: '1 / 1 / span 1 / span 1' },
+    { id: 8, capacity: 2, isVIP: false, gridArea: '2 / 1 / span 1 / span 1' },
+    { id: 9, capacity: 2, isVIP: false, gridArea: '3 / 1 / span 1 / span 1' },
+    { id: 19, capacity: 2, isVIP: false, gridArea: '1 / 5 / span 1 / span 1' },
+    { id: 20, capacity: 2, isVIP: false, gridArea: '2 / 5 / span 1 / span 1' },
+    // Four-Person Tables
+    { id: 1, capacity: 4, isVIP: false, gridArea: '1 / 2 / span 1 / span 1' },
+    { id: 2, capacity: 4, isVIP: false, gridArea: '1 / 3 / span 1 / span 1' },
+    { id: 3, capacity: 4, isVIP: false, gridArea: '2 / 2 / span 1 / span 1' },
+    { id: 4, capacity: 4, isVIP: false, gridArea: '2 / 3 / span 1 / span 1' },
+    { id: 5, capacity: 4, isVIP: false, gridArea: '3 / 2 / span 1 / span 1' },
+    { id: 6, capacity: 4, isVIP: false, gridArea: '3 / 3 / span 1 / span 1' },
+    { id: 10, capacity: 4, isVIP: false, gridArea: '4 / 2 / span 1 / span 1' },
+    { id: 11, capacity: 4, isVIP: false, gridArea: '4 / 3 / span 1 / span 1' },
+    // VIP Tables (T15, T16, T17, T18) - Placed in a separate row for distinction
+    { id: 15, capacity: 4, isVIP: true, x: 4, y: 1 },
+    { id: 16, capacity: 4, isVIP: true, x: 4, y: 2 },
+    { id: 17, capacity: 4, isVIP: true, x: 4, y: 3 },
+    { id: 18, capacity: 4, isVIP: true, x: 4, y: 4 },
 ];
 
-/* ================= DEFAULT DATA (Fallback) ================= */
-// Used if Firebase collections are empty on first load.
+// Fallback Data (remains the same)
 const defaultTeam = [
     { name: "Russ", title: "Owner", desc: "The Visionary", img: "img/RussMarina.png" },
     { name: "Kaizo", title: "Co-Owner", desc: "Head Chef", img: "img/KaizoMarina.png" },
@@ -84,47 +86,50 @@ const defaultFinancials = [
     { cat: "Entree", name: "Alamo Seafood Boil", contents: "10 Frozen Meat ($14ea) + Dough", cost: 24, price: 40, status: "⚠️ Low Margin" }
 ];
 
+
 /* ================= INITIAL LOAD (FIREBASE) ================= */
 document.addEventListener('DOMContentLoaded', () => {
     // 1. Team Data
-    db.collection("marina_data").doc("team").onSnapshot((doc) => {
-        if (doc.exists) {
-            teamData = doc.data().members;
-            renderPublicTeam();
-            if(currentUserRole === 'superadmin') renderEditTeamForm();
-        } else {
-            db.collection("marina_data").doc("team").set({ members: defaultTeam });
-        }
-    });
-
-    // 2. Financial/Menu Data
-    db.collection("marina_data").doc("financials").onSnapshot((doc) => {
-        if (doc.exists) {
-            financialData = doc.data().items;
-            renderPublicMenu();
-            if(currentUserRole === 'superadmin') renderFinancialsTable();
-            if(currentUserRole) renderAdminMenuView();
-        } else {
-            db.collection("marina_data").doc("financials").set({ items: defaultFinancials });
-        }
-    });
-
-    // 3. Reservations (Realtime listener for map status)
-    db.collection("reservations").orderBy("timestamp", "desc").onSnapshot((snapshot) => {
-        reservations = [];
-        snapshot.forEach(doc => {
-            const data = doc.data();
-            data.docId = doc.id; 
-            reservations.push(data);
+    if (db) {
+        db.collection("marina_data").doc("team").onSnapshot((doc) => {
+            if (doc.exists) {
+                teamData = doc.data().members;
+                renderPublicTeam();
+                if(currentUserRole === 'superadmin') renderEditTeamForm();
+            } else {
+                db.collection("marina_data").doc("team").set({ members: defaultTeam });
+            }
         });
-        
-        // Rerender customer map and admin components
-        renderMap('map-container', true); 
-        if(currentUserRole) {
-            renderAdminReservations();
-            renderMap('admin-map-container', false);
-        }
-    });
+
+        // 2. Financial/Menu Data
+        db.collection("marina_data").doc("financials").onSnapshot((doc) => {
+            if (doc.exists) {
+                financialData = doc.data().items;
+                renderPublicMenu();
+                if(currentUserRole === 'superadmin') renderFinancialsTable();
+                if(currentUserRole) renderAdminMenuView();
+            } else {
+                db.collection("marina_data").doc("financials").set({ items: defaultFinancials });
+            }
+        });
+
+        // 3. Reservations (Realtime listener for map status)
+        db.collection("reservations").orderBy("timestamp", "desc").onSnapshot((snapshot) => {
+            reservations = [];
+            snapshot.forEach(doc => {
+                const data = doc.data();
+                data.docId = doc.id; 
+                reservations.push(data);
+            });
+            
+            // Rerender customer map and admin components
+            renderMap('map-container', true); 
+            if(currentUserRole) {
+                renderAdminReservations();
+                renderMap('admin-map-container', false);
+            }
+        });
+    }
 
     setupBubbles();
     updateRequiredTables(); // Initial status for reservation modal
@@ -158,7 +163,6 @@ function setupBubbles() {
 function openModal(id) { document.getElementById(id).style.display = 'flex'; }
 function closeModal(id) { 
     document.getElementById(id).style.display = 'none'; 
-    // Reset reservation state when closing the reservation modal
     if (id === 'reservation-modal') {
         selectedTables = [];
         updateRequiredTables();
@@ -208,12 +212,8 @@ function renderPublicMenu() {
 
 /* ================= MAP & RESERVATION LOGIC ================= */
 
-/**
- * Determines the current status of a table (free, on_hold, confirmed)
- */
 function getTableStatus(tableId) {
     const activeRes = reservations.find(res => {
-        // Find any reservation that includes this table ID AND is not rejected
         return res.tables && res.tables.includes(tableId) && (res.status === 'on_hold' || res.status === 'confirmed');
     });
 
@@ -222,22 +222,12 @@ function getTableStatus(tableId) {
 }
 
 /**
- * Renders the table layout into the specified container.
- * @param {string} containerId - The ID of the HTML element (e.g., 'map-container').
- * @param {boolean} isCustomerView - If true, tables are clickable for reservation.
+ * Renders the table layout into the specified container using CSS Grid.
  */
 function renderMap(containerId, isCustomerView) {
-    const container = document.getElementById(containerId);
-    if (!container) return; 
+    const layout = document.getElementById(`${containerId}-layout`);
+    if (!layout) return; 
 
-    // Find or create the layout wrapper
-    let layout = document.getElementById(`${containerId}-layout`);
-    if (!layout) {
-        container.innerHTML = `<div class="table-layout" id="${containerId}-layout"></div>`;
-        layout = document.getElementById(`${containerId}-layout`);
-    }
-
-    // Clear previous elements
     layout.innerHTML = '';
 
     ALL_TABLES.forEach(table => {
@@ -252,20 +242,24 @@ function renderMap(containerId, isCustomerView) {
         }
         tableHtml += `</div>`;
         
+        // Create the inner table element
         const element = document.createElement('div');
         element.className = `table-element table-${table.capacity} status-${status} ${table.isVIP ? 'table-vip' : ''} ${isSelected ? 'selected' : ''}`;
-        element.style.left = `${table.x}%`;
-        element.style.top = `${table.y}%`;
         element.innerHTML = tableHtml;
 
         if (isClickable) {
             element.onclick = () => handleTableClick(table.id);
         } else if (!isCustomerView && status !== 'free') {
-             // Admin view: non-free tables are clickable to review the reservation
              element.onclick = () => showAdminTableActions(table.id);
         }
         
-        layout.appendChild(element);
+        // Create the wrapper for Grid placement
+        const wrapper = document.createElement('div');
+        wrapper.className = 'table-element-wrapper';
+        wrapper.style.gridArea = table.gridArea;
+        wrapper.appendChild(element);
+
+        layout.appendChild(wrapper);
     });
     
     if (isCustomerView) {
@@ -274,7 +268,7 @@ function renderMap(containerId, isCustomerView) {
 }
 
 /**
- * Customer function: Handles table selection logic (capacity rules and multi-selection).
+ * Customer function: Handles table selection with capacity limits.
  */
 function handleTableClick(tableId) {
     const tableIndex = ALL_TABLES.findIndex(t => t.id === tableId);
@@ -282,17 +276,20 @@ function handleTableClick(tableId) {
 
     const table = ALL_TABLES[tableIndex];
     const isCurrentlySelected = selectedTables.includes(tableId);
-    
-    // Get required party size
     const size = parseInt(document.getElementById('res-size').value) || 0;
+    
+    if (size === 0) {
+        alert("Please enter your group size first.");
+        return;
+    }
 
     if (isCurrentlySelected) {
         // Deselect table
         selectedTables = selectedTables.filter(id => id !== tableId);
     } else {
-        // Check 2-person table rule: T2 tables are only for parties <= 2
+        // Validation: Prevent picking a 2-person table if party size > 2
         if (table.capacity === 2 && size > 2) {
-             alert(`Table T${tableId} has a capacity of 2. Your party size of ${size} requires a larger table or multiple tables.`);
+             alert(`Table T${tableId} has a capacity of 2. Your party size of ${size} requires a 4-person table or multiple 2-person tables.`);
              return;
         }
 
@@ -300,16 +297,17 @@ function handleTableClick(tableId) {
         selectedTables.push(tableId);
     }
     
-    // Check VIP warning status based on current selection
+    // Update visuals and check status
     const vipWarning = document.getElementById('vip-warning');
     const hasSelectedVip = selectedTables.some(id => ALL_TABLES.find(t => t.id === id).isVIP);
     vipWarning.style.display = hasSelectedVip ? 'block' : 'none';
 
     renderMap('map-container', true);
+    updateSubmitButtonStatus();
 }
 
 /**
- * Customer function: Updates the required number of tables/capacity display.
+ * Customer function: Updates the required capacity display.
  */
 function updateRequiredTables() {
     const sizeInput = document.getElementById('res-size');
@@ -321,21 +319,18 @@ function updateRequiredTables() {
         return;
     }
 
-    // Deselect all tables and update requirement text
     selectedTables = [];
     
     if (size <= 4) {
-        reqText.innerHTML = `**Required:** 1 table for minimum ${size} people. (Choose one table for 2 or 4 capacity)`;
+        reqText.innerHTML = `**Required:** Minimum 1 table (Cap $\\geq$ ${size} people). Single table capacity max is 4.`;
     } else {
-        // Tables are max 4 people. Calculate minimum tables needed.
         const tablesNeeded = Math.ceil(size / 4);
-        reqText.innerHTML = `**Required:** Minimum of ${tablesNeeded} tables (total capacity must be $\\geq$ ${size} people).`;
+        reqText.innerHTML = `**Required:** Minimum of **${tablesNeeded} tables** (Total Cap $\\geq$ ${size} people).`;
     }
     
-    // Re-render map and check button status
     renderMap('map-container', true);
+    updateSubmitButtonStatus();
 }
-
 
 /**
  * Customer function: Checks if selected tables meet the minimum capacity requirement.
@@ -343,10 +338,12 @@ function updateRequiredTables() {
 function updateSubmitButtonStatus() {
     const size = parseInt(document.getElementById('res-size').value) || 0;
     const submitBtn = document.getElementById('submit-reservation-btn');
-    
+    const capacityWarning = document.getElementById('capacity-warning');
+
     if (size === 0) {
         submitBtn.disabled = true;
         submitBtn.textContent = `Enter group size above to start.`;
+        capacityWarning.style.display = 'none';
         return;
     }
     
@@ -358,9 +355,15 @@ function updateSubmitButtonStatus() {
     if (selectedTables.length > 0 && totalCapacity >= size) {
         submitBtn.disabled = false;
         submitBtn.textContent = `Confirm Reservation (Tables: ${selectedTables.join(', ')})`;
+        capacityWarning.style.display = 'none';
     } else {
         submitBtn.disabled = true;
-        submitBtn.textContent = `Select table(s) (Required Capacity: ${size}, Selected: ${totalCapacity})`;
+        submitBtn.textContent = `Select table(s) (Required Cap: ${size}, Selected Cap: ${totalCapacity})`;
+        if (selectedTables.length > 0) {
+             capacityWarning.style.display = 'block';
+        } else {
+             capacityWarning.style.display = 'none';
+        }
     }
 }
 
@@ -370,8 +373,8 @@ function updateSubmitButtonStatus() {
 // Reservation Form Submission
 document.getElementById('reservation-form').addEventListener('submit', (e) => {
     e.preventDefault();
-    if (selectedTables.length === 0 || document.getElementById('submit-reservation-btn').disabled) {
-        alert("Please select one or more tables that meet your party size.");
+    if (document.getElementById('submit-reservation-btn').disabled) {
+        alert("Please select table(s) to meet your party size requirement.");
         return;
     }
     
@@ -386,12 +389,11 @@ document.getElementById('reservation-form').addEventListener('submit', (e) => {
         tables: selectedTables.sort((a, b) => a - b),
         isVip: isVip,
         vipFee: isVip ? 250 : 0,
-        status: 'on_hold', // NEW: Must be confirmed by admin
+        status: 'on_hold',
         timestamp: firebase.firestore.FieldValue.serverTimestamp()
     };
 
-    // Save to Firebase (Will automatically trigger rerender via listener)
-    db.collection("reservations").add(newRes);
+    if (db) db.collection("reservations").add(newRes);
 
     // Discord Notification
     const embed = {
@@ -414,8 +416,6 @@ document.getElementById('reservation-form').addEventListener('submit', (e) => {
     closeModal('reservation-modal');
     e.target.reset();
     selectedTables = [];
-    renderMap('map-container', true); 
-    updateRequiredTables();
 });
 
 // Rental Form
@@ -458,8 +458,7 @@ document.getElementById('application-form').addEventListener('submit', (e) => {
         timestamp: firebase.firestore.FieldValue.serverTimestamp()
     };
 
-    // Save to Firebase
-    db.collection("applications").add(app);
+    if (db) db.collection("applications").add(app);
 
     const embed = {
         title: "📝 New Job Application",
@@ -483,6 +482,8 @@ document.getElementById('application-form').addEventListener('submit', (e) => {
 });
 
 /* ================= ADMIN FUNCTIONS ================= */
+
+// FIXED: Login logic restored and simplified
 function attemptLogin() {
     const input = document.getElementById('admin-code').value;
     const errorMsg = document.getElementById('login-error');
@@ -525,7 +526,6 @@ function setupAdminPanel() {
         title.textContent = "Admin Panel";
         superTabs.forEach(el => el.style.display = 'none');
     }
-    // Initial map render for admin panel
     renderMap('admin-map-container', false);
 }
 
@@ -539,7 +539,6 @@ function switchTab(tabId) {
         if(btn.getAttribute('onclick').includes(tabId)) btn.classList.add('active');
     });
 
-    // Re-render map when switching to Table Management tab
     if (tabId === 'tab-tables') {
         renderMap('admin-map-container', false);
         document.getElementById('table-admin-actions').innerHTML = '';
@@ -552,7 +551,6 @@ function renderAdminReservations() {
     tbodyOnhold.innerHTML = '';
     tbodyConfirmed.innerHTML = '';
 
-    // Only show reservations that haven't expired or been dealt with
     const onHoldRes = reservations.filter(res => res.status === 'on_hold');
     const confirmedRes = reservations.filter(res => res.status === 'confirmed');
 
@@ -561,7 +559,7 @@ function renderAdminReservations() {
     } else {
         onHoldRes.forEach(res => {
             tbodyOnhold.innerHTML += `<tr>
-                <td>${res.docId.substring(0, 5)}...</td>
+                <td>${res.docId ? res.docId.substring(0, 5) : 'N/A'}...</td>
                 <td>${res.name}</td>
                 <td>${res.date ? res.date.replace('T', ' ') : '-'}</td>
                 <td>${res.size}</td>
@@ -576,7 +574,7 @@ function renderAdminReservations() {
     } else {
         confirmedRes.forEach(res => {
             tbodyConfirmed.innerHTML += `<tr>
-                <td>${res.docId.substring(0, 5)}...</td>
+                <td>${res.docId ? res.docId.substring(0, 5) : 'N/A'}...</td>
                 <td>${res.name}</td>
                 <td>${res.date ? res.date.replace('T', ' ') : '-'}</td>
                 <td>${res.size}</td>
@@ -633,7 +631,6 @@ function confirmReservation(docId) {
 
 function rejectReservation(docId) {
     if (confirm("Are you sure you want to REJECT or DELETE this reservation? The table(s) will be freed up.")) {
-        // Simple deletion is the fastest way to reject and free up the table
         db.collection("reservations").doc(docId).delete()
             .then(() => {
                 alert("Reservation deleted. Table(s) are now FREE.");
