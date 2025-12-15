@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Marina | Sandy Shores</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+</head>
+<body>
+
+    <div class="bubbles-container">
+        <div class="bubble"></div><div class="bubble"></div><div class="bubble"></div>
+        <div class="bubble"></div><div class="bubble"></div><div class="bubble"></div>
+        <div class="bubble"></div><div class="bubble"></div><div class="bubble"></div>
+        <div class="bubble"></div><div class="bubble"></div><div class="bubble"></div>
+        <div class="bubble"></div><div class="bubble"></div><div class="bubble"></div>
+    </div>
+
+    <div class="main-wrapper">
+        
+        <header class="hero interactive-element">
+            <img src="Marina-Square-Samdy-Shores-v1.png" alt="The Marina Logo" class="main-logo">
+        </header>
+
+        <section id="team-section" class="interactive-element">
+            <div id="all-staff-container" class="team-row-single">
+                <p style="color: white;">Loading Crew...</p>
+            </div>
+        </section>
+
+        <section id="about-section" class="interactive-element">
+            <h2>Welcome to The Marina</h2>
+            <p>
+                Located in the heart of Sandy Shores, The Marina serves up the freshest catch in San Andreas. 
+                Whether you're here for our famous Lobster Tail or just to enjoy the vibes, 
+                our crew is dedicated to making every visit a splash!
+            </p>
+        </section>
+
+        <section class="actions interactive-element">
+            <button onclick="openModal('menu-modal')" class="btn btn-primary">Our Menu</button>
+            <button onclick="openModal('reservation-modal')" class="btn btn-secondary">Reservations</button>
+            <button onclick="openModal('rental-modal')" class="btn btn-accent">Rentals</button>
+            <button onclick="openModal('application-modal')" class="btn btn-secondary">Join the Crew</button>
+        </section>
+
+        <footer class="interactive-element">
+            <button id="admin-login-btn" onclick="openModal('login-modal')">Staff Login</button>
+        </footer>
+
+    </div>
+
+    <div id="menu-modal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal('menu-modal')">&times;</span>
+            <h2>Fresh Catch Menu</h2>
+            <ul id="public-menu-list">
+                <li>Loading Menu from Database...</li>
+            </ul>
+        </div>
+    </div>
+
+    <div id="reservation-modal" class="modal">
+        <div class="modal-content large-modal">
+            <span class="close" onclick="closeModal('reservation-modal')">&times;</span>
+            <h2>Table Reservation</h2>
+            
+            <form id="reservation-form">
+                <div id="reservation-details">
+                    <h3>1. Your Details</h3>
+                    <div style="display:flex; gap:10px;">
+                        <div style="flex:1;">
+                            <label>Name:</label> <input type="text" id="res-name" required>
+                        </div>
+                        <div style="flex:1;">
+                            <label>Group Size (2-20):</label> <input type="number" id="res-size" min="2" max="20" required onchange="updateRequiredTables()">
+                        </div>
+                    </div>
+                    <div style="display:flex; gap:10px;">
+                        <div style="flex:1;">
+                            <label>Phone:</label> <input type="text" id="res-phone" required>
+                        </div>
+                        <div style="flex:1;">
+                            <label>Date & Time:</label> <input type="datetime-local" id="res-date" required>
+                        </div>
+                    </div>
+                    
+                    <h3>2. Choose Your Table(s)</h3>
+                    <div id="table-requirements" style="font-weight:bold; margin-bottom:10px;">Enter group size above to start.</div>
+                    <p id="vip-warning" class="error-text" style="display:none;">⚠️ VIP Table Selected. A one-time VIP Fee of $250 applies. ⚠️</p>
+                </div>
+
+                <div id="map-container" class="map-container">
+                    <div class="table-layout" id="map-container-layout">
+                        </div>
+                </div>
+                
+                <div style="margin-top: 15px; text-align: center;">
+                    <button type="submit" class="btn btn-primary" id="submit-reservation-btn" disabled>Confirm Reservation</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="rental-modal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal('rental-modal')">&times;</span>
+            <h2>Venue Rental Inquiry</h2>
+            <form id="rental-form">
+                <label>Name:</label> <input type="text" id="rent-name" required>
+                <label>Type:</label> <input type="text" id="rent-type" placeholder="Event Type">
+                <label>Staffing?</label>
+                <select id="rent-staffing">
+                    <option value="yes">Yes</option>
+                    <option value="no">No</option>
+                </select>
+                <button type="submit" class="btn btn-accent">Submit Inquiry</button>
+            </form>
+        </div>
+    </div>
+
+    <div id="application-modal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal('application-modal')">&times;</span>
+            <h2>Job Application</h2>
+            <form id="application-form">
+                <label>Discord Name:</label> 
+                <input type="text" id="app-discord" placeholder="Example#1234" required>
+                
+                <label>First & Last Name:</label> 
+                <input type="text" id="app-ic-name" required>
+                
+                <div style="display:flex; gap:10px;">
+                    <div style="flex:1;">
+                        <label>State ID:</label> 
+                        <input type="number" id="app-id" required>
+                    </div>
+                    <div style="flex:1;">
+                        <label>Phone Number:</label> 
+                        <input type="text" id="app-phone" required>
+                    </div>
+                </div>
+
+                <label>Availability (Storm):</label>
+                <select id="app-storm">
+                    <option value="EU">EU Storm</option>
+                    <option value="NA">NA Storm</option>
+                    <option value="AU">AU Storm</option>
+                    <option value="Flexible">Flexible / Mixed</option>
+                </select>
+
+                <label>Experience:</label> 
+                <textarea id="app-exp" rows="3" placeholder="Previous experience?"></textarea>
+
+                <label>Motivation:</label> 
+                <textarea id="app-mot" rows="3" placeholder="Why The Marina?"></textarea>
+
+                <button type="submit" class="btn btn-accent">Submit Application</button>
+            </form>
+        </div>
+    </div>
+
+    <div id="login-modal" class="modal">
+        <div class="modal-content small-modal">
+            <span class="close" onclick="closeModal('login-modal')">&times;</span>
+            <h2>Staff Access</h2>
+            <input type="password" id="admin-code" placeholder="Code">
+            <button onclick="attemptLogin()" class="btn btn-primary">Login</button>
+            <p id="login-error" class="error-text"></p>
+        </div>
+    </div>
+
+    <div id="admin-panel" class="modal fullscreen-modal">
+        <div class="modal-content fullscreen-content">
+            <div class="admin-header">
+                <h2 id="admin-title">Admin Panel</h2>
+                <button onclick="logout()" class="btn btn-danger">Logout</button>
+            </div>
+            <div class="admin-tabs">
+                <button class="tab-btn active" onclick="switchTab('tab-reservations')">Reservations</button>
+                <button class="tab-btn" onclick="switchTab('tab-menu-view')">Menu View</button>
+                <button class="tab-btn super-only" onclick="switchTab('tab-financials')">Finance</button>
+                <button class="tab-btn super-only" onclick="switchTab('tab-edit-site')">Edit Team</button>
+                <button class="tab-btn super-only" onclick="switchTab('tab-tables')">Table Management</button>
+            </div>
+            
+            <div id="tab-reservations" class="tab-content active">
+                <h3>New Reservations (On Hold)</h3>
+                <table class="data-table">
+                    <thead><tr><th>ID</th><th>Name</th><th>Date</th><th>Size</th><th>Tables</th><th>Status</th></tr></thead>
+                    <tbody id="admin-res-body-onhold"><tr><td colspan="6">No pending requests.</td></tr></tbody>
+                </table>
+                <h3>Confirmed Reservations</h3>
+                <table class="data-table">
+                    <thead><tr><th>ID</th><th>Name</th><th>Date</th><th>Size</th><th>Tables</th><th>Status</th></tr></thead>
+                    <tbody id="admin-res-body-confirmed"><tr><td colspan="6">No confirmed reservations.</td></tr></tbody>
+                </table>
+            </div>
+
+            <div id="tab-menu-view" class="tab-content">
+                <div id="admin-menu-view-list"></div>
+            </div>
+
+            <div id="tab-financials" class="tab-content">
+                <div class="table-scroll-wrapper">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Category</th>
+                                <th>Item Name</th>
+                                <th>Contents / Notes</th>
+                                <th>Cost</th>
+                                <th>Price</th>
+                                <th>Profit</th>
+                                <th>Status</th>
+                                <th>X</th>
+                            </tr>
+                        </thead>
+                        <tbody id="financial-body"></tbody>
+                    </table>
+                </div>
+                <div style="margin-top:10px;">
+                    <button onclick="addNewProductRow()" class="btn btn-small">+ Add Item</button>
+                    <button onclick="saveFinancials()" class="btn btn-primary">Save Changes</button>
+                </div>
+            </div>
+
+            <div id="tab-edit-site" class="tab-content">
+                <div id="edit-team-container"></div>
+                <button onclick="saveTeamChanges()" class="btn btn-primary">Save Changes</button>
+            </div>
+
+            <div id="tab-tables" class="tab-content">
+                <h3>Table Status Overview</h3>
+                <div class="map-container" id="admin-map-container">
+                    <div class="table-layout" id="admin-map-container-layout">
+                        </div>
+                </div>
+                <p style="margin-top:10px; font-size:0.9rem;">Click an ON HOLD table (Orange) to review the reservation.</p>
+                <div id="table-admin-actions"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
+    
+    <script src="script.js"></script>
+</body>
+</html>
