@@ -26,14 +26,11 @@ const WEBHOOK_RENTAL = "https://discord.com/api/webhooks/1449134644997132329/SlY
 let teamData = [];
 let financialData = [];
 let reservations = [];
-let allTablesConfig = []; // NEW: This will be loaded from Firebase
+let allTablesConfig = []; 
 let currentUserRole = null; 
-
-// --- RESERVATION GLOBAL STATE ---
 let selectedTables = [];
 
 // --- DEFAULT TABLE CONFIGURATION (FALLBACK/FIRST LOAD) ---
-// REVISED LAYOUT: Cleaner placement within the 5x4 grid.
 const DEFAULT_TABLES_CONFIG = [
     // Two-Person Tables (T7, T8, T9, T19, T20) - Along the bar/wall
     { id: 7, capacity: 2, isVIP: false, gridArea: '1 / 1 / span 1 / span 1' },
@@ -59,8 +56,8 @@ const DEFAULT_TABLES_CONFIG = [
     { id: 15, capacity: 4, isVIP: true, gridArea: '4 / 2 / span 1 / span 1' },
     { id: 16, capacity: 4, isVIP: true, gridArea: '4 / 3 / span 1 / span 1' },
     { id: 17, capacity: 4, isVIP: true, gridArea: '4 / 4 / span 1 / span 1' },
-    { id: 18, capacity: 4, isVIP: true, gridArea: '2 / 2 / span 1 / span 1' }, // Moved T18 slightly higher
-
+    { id: 18, capacity: 4, isVIP: true, gridArea: '2 / 2 / span 1 / span 1' }, // T18
+    
     // Added a couple of spare tables for future use
     { id: 21, capacity: 4, isVIP: false, gridArea: '1 / 2 / span 1 / span 1' },
     { id: 22, capacity: 2, isVIP: false, gridArea: '3 / 2 / span 1 / span 1' },
@@ -243,7 +240,7 @@ function getTableStatus(tableId) {
 
 /**
  * Renders the table layout into the specified container using CSS Grid.
- * ADDED SAFEGUARD: Checks if allTablesConfig is available before rendering.
+ * D&D LOGIC ADDED: Sets draggable="true" and event listeners for admin view.
  */
 function renderMap(containerId, isCustomerView) {
     const layout = document.getElementById(`${containerId}-layout`);
@@ -251,7 +248,6 @@ function renderMap(containerId, isCustomerView) {
 
     layout.innerHTML = '';
     
-    // SAFEGUARD: If config is empty, display loading message and exit.
     if (allTablesConfig.length === 0) {
         layout.innerHTML = '<p style="color: black; margin-top: 10px;">Loading table map...</p>';
         return;
@@ -262,6 +258,9 @@ function renderMap(containerId, isCustomerView) {
         const isSelected = selectedTables.includes(table.id);
         const isFree = status === 'free';
         const isClickable = isCustomerView && isFree;
+        
+        // Only Superadmins can drag tables
+        const isDraggable = !isCustomerView && currentUserRole === 'superadmin';
 
         let tableHtml = `<div class="table-text">T${table.id}<small>(${table.capacity} max)</small>`;
         if (status !== 'free') {
@@ -273,6 +272,12 @@ function renderMap(containerId, isCustomerView) {
         const element = document.createElement('div');
         element.className = `table-element table-${table.capacity} status-${status} ${table.isVIP ? 'table-vip' : ''} ${isSelected ? 'selected' : ''}`;
         element.innerHTML = tableHtml;
+        
+        // Drag & Drop Attribute for Admin view
+        if (isDraggable) {
+            element.setAttribute('draggable', 'true');
+            element.ondragstart = (e) => handleDragStart(e, table.id);
+        }
 
         if (isClickable) {
             element.onclick = () => handleTableClick(table.id);
@@ -284,8 +289,15 @@ function renderMap(containerId, isCustomerView) {
         const wrapper = document.createElement('div');
         wrapper.className = 'table-element-wrapper';
         wrapper.style.gridArea = table.gridArea;
-        wrapper.appendChild(element);
+        
+        // Drag & Drop Target for Admin view
+        if (isDraggable) {
+            wrapper.ondragover = (e) => handleDragOver(e);
+            wrapper.ondragleave = (e) => handleDragLeave(e);
+            wrapper.ondrop = (e) => handleDrop(e, table.id, layout.id);
+        }
 
+        wrapper.appendChild(element);
         layout.appendChild(wrapper);
     });
     
@@ -293,6 +305,68 @@ function renderMap(containerId, isCustomerView) {
         updateSubmitButtonStatus();
     }
 }
+
+/* ================= DRAG & DROP FUNCTIONS (SUPERADMIN ONLY) ================= */
+
+let draggedTableId = null;
+
+function handleDragStart(e, tableId) {
+    draggedTableId = tableId;
+    e.dataTransfer.setData('text/plain', tableId);
+    e.target.style.opacity = '0.5'; // Visual feedback
+}
+
+function handleDragOver(e) {
+    e.preventDefault(); // Allows drop
+    if (e.target.classList.contains('table-element-wrapper')) {
+        e.target.classList.add('drag-over');
+    }
+}
+
+function handleDragLeave(e) {
+    if (e.target.classList.contains('table-element-wrapper')) {
+        e.target.classList.remove('drag-over');
+    }
+}
+
+function handleDrop(e, targetTableId, layoutId) {
+    e.preventDefault();
+    
+    const wrapper = e.target.closest('.table-element-wrapper');
+    if (!wrapper) return;
+    
+    wrapper.classList.remove('drag-over');
+    
+    const sourceTableId = draggedTableId;
+    const sourceTable = allTablesConfig.find(t => t.id === sourceTableId);
+    const targetTable = allTablesConfig.find(t => t.id === targetTableId);
+
+    if (!sourceTable || !targetTable) return;
+    
+    // --- Logic: Swap Grid Areas ---
+    
+    const sourceIndex = allTablesConfig.findIndex(t => t.id === sourceTableId);
+    const targetIndex = allTablesConfig.findIndex(t => t.id === targetTableId);
+
+    if (sourceIndex === targetIndex) return;
+
+    // Swap the gridArea values
+    const tempGridArea = sourceTable.gridArea;
+    allTablesConfig[sourceIndex].gridArea = targetTable.gridArea;
+    allTablesConfig[targetIndex].gridArea = tempGridArea;
+    
+    // Update local configuration and re-render the map immediately
+    renderMap('admin-map-container', false);
+    
+    // Auto-save the new configuration (optional, but convenient for dragging)
+    saveTableConfiguration();
+    
+    // Reset dragged ID
+    draggedTableId = null;
+}
+// Note: handleDragEnd is not strictly necessary as styles are handled by drop/leave
+
+/* ================= REST OF THE RESERVATION/ADMIN FUNCTIONS (Remains the same) ================= */
 
 /**
  * Customer function: Handles table selection with capacity limits.
@@ -398,7 +472,7 @@ function updateSubmitButtonStatus() {
 }
 
 
-/* ================= FORM HANDLERS ================= */
+/* ================= FORM HANDLERS (Remains the same) ================= */
 
 // Reservation Form Submission (Discord logging is preserved)
 document.getElementById('reservation-form').addEventListener('submit', (e) => {
@@ -447,7 +521,7 @@ document.getElementById('reservation-form').addEventListener('submit', (e) => {
     selectedTables = [];
 });
 
-// Rental Form
+// Rental Form (Remains the same)
 document.getElementById('rental-form').addEventListener('submit', (e) => {
     e.preventDefault();
     const rental = {
@@ -473,7 +547,7 @@ document.getElementById('rental-form').addEventListener('submit', (e) => {
     e.target.reset();
 });
 
-// Application Form
+// Application Form (Remains the same)
 document.getElementById('application-form').addEventListener('submit', (e) => {
     e.preventDefault();
     const app = {
@@ -510,7 +584,8 @@ document.getElementById('application-form').addEventListener('submit', (e) => {
     e.target.reset();
 });
 
-/* ================= ADMIN FUNCTIONS ================= */
+
+/* ================= ADMIN FUNCTIONS (Remains the same) ================= */
 
 function attemptLogin() {
     const input = document.getElementById('admin-code').value;

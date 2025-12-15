@@ -191,7 +191,7 @@ footer { flex: 0 0 auto; font-size: 0.8rem; opacity: 0.7; }
 .profit-negative { color: red; font-weight: bold; }
 input, select, textarea { width: 100%; box-sizing: border-box; font-family: inherit; font-size: inherit; padding: 8px; border-radius: 5px; border: 1px solid #ccc; margin-bottom: 10px;}
 
-/* --- TABLE MAP STYLING (NEW CSS Grid) --- */
+/* --- TABLE MAP STYLING (CSS Grid) --- */
 .map-container {
     width: 100%; 
     min-height: 400px; 
@@ -219,7 +219,14 @@ input, select, textarea { width: 100%; box-sizing: border-box; font-family: inhe
     display: flex;
     justify-content: center;
     align-items: center;
-    /* Uses grid-area from JS to position */
+    /* Used for D&D to visually indicate the drop target */
+    border: 2px dashed transparent; 
+}
+
+/* DRAG & DROP SPECIFIC STYLES */
+.table-element-wrapper.drag-over {
+    border-color: var(--ocean-mid);
+    background-color: rgba(46, 139, 192, 0.2);
 }
 
 .table-element {
@@ -238,6 +245,11 @@ input, select, textarea { width: 100%; box-sizing: border-box; font-family: inhe
     cursor: pointer;
     user-select: none;
     text-align: center;
+    
+    /* Make tables draggable */
+    &[draggable="true"] {
+        cursor: grab;
+    }
 }
 
 /* Base table sizes */
