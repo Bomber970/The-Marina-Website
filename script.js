@@ -247,6 +247,12 @@ function renderMap(containerId, isCustomerView) {
     const layout = document.getElementById(`${containerId}-layout`);
     if (!layout) return; 
 
+    // Adjust grid CSS dynamically to 10x10 if needed (must be done in JS or CSS is overridden)
+    if (layout.style.gridTemplateColumns !== 'repeat(10, 1fr)') {
+        layout.style.gridTemplateColumns = 'repeat(10, 1fr)';
+        layout.style.gridTemplateRows = 'repeat(10, 1fr)';
+    }
+
     layout.innerHTML = '';
     
     if (allTablesConfig.length === 0) {
@@ -275,7 +281,6 @@ function renderMap(containerId, isCustomerView) {
         
         if (isDraggable) {
             element.setAttribute('draggable', 'true');
-            // Attach dragstart to the table element itself
             element.ondragstart = (e) => handleDragStart(e, table.id);
         }
 
@@ -293,9 +298,11 @@ function renderMap(containerId, isCustomerView) {
         
         // Attach D&D listeners only to the wrapper (the drop zone) in admin view
         if (isDraggable) {
+            // Store the ID of the table currently in this wrapper, if any
+            wrapper.setAttribute('data-table-id', table.id); 
             wrapper.ondragover = (e) => handleDragOver(e);
             wrapper.ondragleave = (e) => handleDragLeave(e);
-            wrapper.ondrop = (e) => handleDrop(e, table.id, wrapper); // Pass the wrapper element
+            wrapper.ondrop = (e) => handleDrop(e, wrapper); // Pass the wrapper itself
         }
 
         wrapper.appendChild(element);
@@ -314,74 +321,82 @@ let draggedTableId = null;
 function handleDragStart(e, tableId) {
     draggedTableId = tableId;
     e.dataTransfer.setData('text/plain', tableId);
-    e.target.style.opacity = '0.5'; // Visual feedback
     
-    // Allow the wrapper to catch the drop event
+    // Set opacity on the actual table element being dragged
+    e.target.style.opacity = '0.5'; 
+    
+    // Allow ALL wrappers to catch the drop event
     const wrappers = document.querySelectorAll('.table-element-wrapper');
     wrappers.forEach(w => w.style.pointerEvents = 'auto');
 }
 
 function handleDragOver(e) {
     e.preventDefault(); 
-    if (e.target.classList.contains('table-element-wrapper') && !e.target.querySelector('.table-element')) {
-        // Highlight only if the target is an empty wrapper
-        e.target.classList.add('drag-over');
+    // Find the wrapper element that is the actual drop target
+    const wrapper = e.target.closest('.table-element-wrapper');
+    if (wrapper) {
+        wrapper.classList.add('drag-over');
     }
 }
 
 function handleDragLeave(e) {
-    if (e.target.classList.contains('table-element-wrapper')) {
-        e.target.classList.remove('drag-over');
+    // Find the wrapper element that the mouse is leaving
+    const wrapper = e.target.closest('.table-element-wrapper');
+    if (wrapper) {
+        wrapper.classList.remove('drag-over');
     }
 }
 
-function handleDrop(e, currentTableId, targetWrapper) {
+function handleDrop(e, targetWrapper) {
     e.preventDefault();
     targetWrapper.classList.remove('drag-over');
     
     const sourceTableId = draggedTableId;
     const sourceTable = allTablesConfig.find(t => t.id === sourceTableId);
-
-    // Get the gridArea of the wrapper element where the table was dropped
-    const targetGridArea = targetWrapper.style.gridArea;
-
-    if (!sourceTable || !targetGridArea) {
+    
+    if (!sourceTable) {
+        console.error("Source table not found.");
         return;
     }
     
-    // Check if the target wrapper already contains a table (based on its children)
-    if (targetWrapper.querySelector('.table-element')) {
-        // If it contains a table, we need to swap the positions
-        const targetTable = allTablesConfig.find(t => t.id === currentTableId);
-        const sourceIndex = allTablesConfig.findIndex(t => t.id === sourceTableId);
-        const targetIndex = allTablesConfig.findIndex(t => t.id === currentTableId);
+    // Get the gridArea of the target wrapper element where the table was dropped
+    const targetGridArea = targetWrapper.style.gridArea;
+    const sourceIndex = allTablesConfig.findIndex(t => t.id === sourceTableId);
+    
+    // Find the table currently in the target wrapper (if any)
+    const tableInTargetWrapperId = targetWrapper.getAttribute('data-table-id');
+    
+    if (tableInTargetWrapperId && parseInt(tableInTargetWrapperId) !== sourceTableId) {
+        // --- SCENARIO 1: SWAPPING TWO TABLES ---
+        const targetTable = allTablesConfig.find(t => t.id === parseInt(tableInTargetWrapperId));
+        const targetIndex = allTablesConfig.findIndex(t => t.id === targetTable.id);
 
-        if (sourceIndex === targetIndex) return;
+        if (targetTable) {
+            // 1. Move the *target* table to the *source* table's old position
+            allTablesConfig[targetIndex].gridArea = sourceTable.gridArea;
+            
+            // 2. Move the *source* table to the *target* table's position
+            allTablesConfig[sourceIndex].gridArea = targetGridArea;
+        }
 
-        // Swap the gridArea values
-        const tempGridArea = sourceTable.gridArea;
-        allTablesConfig[sourceIndex].gridArea = targetTable.gridArea;
-        allTablesConfig[targetIndex].gridArea = tempGridArea;
-        
-    } else {
-        // If the target wrapper is empty, move the source table to the target's gridArea
-        const sourceIndex = allTablesConfig.findIndex(t => t.id === sourceTableId);
+    } else if (!targetWrapper.querySelector('.table-element') || parseInt(tableInTargetWrapperId) === sourceTableId) {
+        // --- SCENARIO 2: MOVING TO AN EMPTY SPOT (OR DROPPING ON ITSELF) ---
         allTablesConfig[sourceIndex].gridArea = targetGridArea;
     }
 
-    // Reset styles and re-render the map immediately
-    if (e.target.closest('.table-element')) {
-        e.target.closest('.table-element').style.opacity = '1';
-    } else {
-         document.querySelector(`[ondragstart$='handleDragStart(event, ${sourceTableId})']`).style.opacity = '1';
+    // Reset styles on the dragged element
+    const draggedElement = document.querySelector(`[ondragstart$='handleDragStart(event, ${sourceTableId})']`);
+    if (draggedElement) {
+        draggedElement.style.opacity = '1';
     }
     
+    // Final actions
     renderMap('admin-map-container', false);
     saveTableConfiguration();
     
     draggedTableId = null;
 
-    // Reset pointer-events on all wrappers
+    // Reset pointer-events on all wrappers (important!)
     const wrappers = document.querySelectorAll('.table-element-wrapper');
     wrappers.forEach(w => w.style.pointerEvents = 'none');
 }
