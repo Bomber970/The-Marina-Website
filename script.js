@@ -30,40 +30,38 @@ let allTablesConfig = [];
 let currentUserRole = null; 
 let selectedTables = [];
 
-// --- DEFAULT TABLE CONFIGURATION (FALLBACK/FIRST LOAD) ---
-// REVISED LAYOUT: Spread across a 10x10 Grid for better spacing and visibility.
-// Grid Area format: 'row-start / col-start / row-span / col-span'
+// --- DEFAULT TABLE CONFIGURATION (Absolute Position Based on marinamap.png) ---
+// Position is based on the top-left corner of the table element (X, Y percentage)
 const DEFAULT_TABLES_CONFIG = [
-    // Two-Person Tables (T7, T8, T9, T19, T20) 
-    { id: 7, capacity: 2, isVIP: false, gridArea: '2 / 2 / span 1 / span 1' },
-    { id: 8, capacity: 2, isVIP: false, gridArea: '2 / 3 / span 1 / span 1' },
-    { id: 9, capacity: 2, isVIP: false, gridArea: '3 / 2 / span 1 / span 1' },
-    { id: 19, capacity: 2, isVIP: false, gridArea: '3 / 3 / span 1 / span 1' },
-    { id: 20, capacity: 2, isVIP: false, gridArea: '8 / 8 / span 1 / span 1' },
+    // BALCONY TABLES (T10 - T18, T14/T15 are side tables)
+    { id: 10, capacity: 4, isVIP: false, x: 60, y: 75 },
+    { id: 11, capacity: 4, isVIP: false, x: 50, y: 75 },
+    { id: 12, capacity: 4, isVIP: false, x: 40, y: 75 },
+    { id: 13, capacity: 4, isVIP: false, x: 30, y: 75 },
+    { id: 14, capacity: 4, isVIP: false, x: 10, y: 50 }, // Side Table
+    { id: 15, capacity: 4, isVIP: false, x: 10, y: 20 }, // Side Table
+    { id: 16, capacity: 4, isVIP: false, x: 25, y: 20 },
+    { id: 17, capacity: 4, isVIP: false, x: 35, y: 20 },
+    { id: 18, capacity: 4, isVIP: false, x: 45, y: 20 },
+
+    // NORMAL TABLES (T1 - T4)
+    { id: 1, capacity: 4, isVIP: false, x: 70, y: 55 },
+    { id: 2, capacity: 4, isVIP: false, x: 70, y: 20 },
+    { id: 3, capacity: 4, isVIP: false, x: 80, y: 20 },
+    { id: 4, capacity: 4, isVIP: false, x: 80, y: 55 },
+
+    // V.I.P. TABLES (T5 - T9, T19, T20)
+    { id: 5, capacity: 4, isVIP: true, x: 50, y: 40 }, 
+    { id: 6, capacity: 4, isVIP: true, x: 50, y: 70 }, 
+    { id: 7, capacity: 4, isVIP: true, x: 75, y: 40 }, 
+    { id: 8, capacity: 4, isVIP: true, x: 75, y: 70 }, 
+    { id: 9, capacity: 4, isVIP: true, x: 85, y: 40 }, 
     
-    // Four-Person Tables (Main Dining Area)
-    { id: 1, capacity: 4, isVIP: false, gridArea: '5 / 2 / span 1 / span 1' },
-    { id: 2, capacity: 4, isVIP: false, gridArea: '5 / 4 / span 1 / span 1' },
-    { id: 3, capacity: 4, isVIP: false, gridArea: '5 / 6 / span 1 / span 1' },
-    
-    { id: 4, capacity: 4, isVIP: false, gridArea: '7 / 2 / span 1 / span 1' },
-    { id: 5, capacity: 4, isVIP: false, gridArea: '7 / 4 / span 1 / span 1' },
-    { id: 6, capacity: 4, isVIP: false, gridArea: '7 / 6 / span 1 / span 1' },
-    
-    { id: 10, capacity: 4, isVIP: false, gridArea: '9 / 2 / span 1 / span 1' },
-    { id: 11, capacity: 4, isVIP: false, gridArea: '9 / 4 / span 1 / span 1' },
-    { id: 12, capacity: 4, isVIP: false, gridArea: '9 / 6 / span 1 / span 1' },
-    
-    // VIP Tables (T15-T18) - Central/Special Area
-    { id: 15, capacity: 4, isVIP: true, gridArea: '5 / 8 / span 1 / span 1' },
-    { id: 16, capacity: 4, isVIP: true, gridArea: '5 / 9 / span 1 / span 1' },
-    { id: 17, capacity: 4, isVIP: true, gridArea: '7 / 8 / span 1 / span 1' },
-    { id: 18, capacity: 4, isVIP: true, gridArea: '7 / 9 / span 1 / span 1' }, 
-    
-    // Added a couple of spare tables for future use
-    { id: 21, capacity: 4, isVIP: false, gridArea: '1 / 9 / span 1 / span 1' },
-    { id: 22, capacity: 2, isVIP: false, gridArea: '2 / 9 / span 1 / span 1' },
+    // Small tables T19/T20
+    { id: 19, capacity: 2, isVIP: false, x: 62, y: 15 },
+    { id: 20, capacity: 2, isVIP: false, x: 62, y: 5 },
 ];
+
 
 const defaultTeam = [
     { name: "Russ", title: "Owner", desc: "The Visionary", img: "img/RussMarina.png" },
@@ -97,7 +95,7 @@ const defaultFinancials = [
 document.addEventListener('DOMContentLoaded', () => {
     if (!db) return; 
 
-    // 0. Load Table Configuration (NEW)
+    // 0. Load Table Configuration 
     db.collection("marina_data").doc("tables").onSnapshot((doc) => {
         if (doc.exists && doc.data().config && doc.data().config.length > 0) {
             allTablesConfig = doc.data().config;
@@ -188,7 +186,7 @@ function closeModal(id) {
     }
 }
 
-/* ================= PUBLIC FUNCTIONS ================= */
+/* ================= PUBLIC FUNCTIONS (Remains the same) ================= */
 function createTeamCard(member) {
     if(!member) return '';
     return `
@@ -241,17 +239,11 @@ function getTableStatus(tableId) {
 }
 
 /**
- * Renders the table layout into the specified container using CSS Grid.
+ * Renders the table layout using absolute positioning based on X/Y percentages.
  */
 function renderMap(containerId, isCustomerView) {
     const layout = document.getElementById(`${containerId}-layout`);
     if (!layout) return; 
-
-    // Adjust grid CSS dynamically to 10x10 if needed (must be done in JS or CSS is overridden)
-    if (layout.style.gridTemplateColumns !== 'repeat(10, 1fr)') {
-        layout.style.gridTemplateColumns = 'repeat(10, 1fr)';
-        layout.style.gridTemplateRows = 'repeat(10, 1fr)';
-    }
 
     layout.innerHTML = '';
     
@@ -290,16 +282,19 @@ function renderMap(containerId, isCustomerView) {
              element.onclick = () => showAdminTableActions(table.id);
         }
         
-        // Create the wrapper for Grid placement (This is the D&D target)
+        // Create the wrapper for Absolute positioning
         const wrapper = document.createElement('div');
         wrapper.className = 'table-element-wrapper';
-        wrapper.setAttribute('data-grid-area', table.gridArea); // Store current area
-        wrapper.style.gridArea = table.gridArea;
+        wrapper.setAttribute('data-table-id', table.id); // Store ID on wrapper
+        wrapper.setAttribute('data-x', table.x);
+        wrapper.setAttribute('data-y', table.y);
         
-        // Attach D&D listeners only to the wrapper (the drop zone) in admin view
+        // Apply absolute position based on stored X/Y percentages
+        wrapper.style.left = `${table.x}%`;
+        wrapper.style.top = `${table.y}%`;
+        
+        // Attach D&D listeners to the wrapper (the drag target) in admin view
         if (isDraggable) {
-            // Store the ID of the table currently in this wrapper, if any
-            wrapper.setAttribute('data-table-id', table.id); 
             wrapper.ondragover = (e) => handleDragOver(e);
             wrapper.ondragleave = (e) => handleDragLeave(e);
             wrapper.ondrop = (e) => handleDrop(e, wrapper); // Pass the wrapper itself
@@ -322,25 +317,32 @@ function handleDragStart(e, tableId) {
     draggedTableId = tableId;
     e.dataTransfer.setData('text/plain', tableId);
     
-    // Set opacity on the actual table element being dragged
+    // Calculate the mouse offset relative to the wrapper for smooth dragging illusion
+    const rect = e.target.getBoundingClientRect();
+    const offsetX = e.clientX - rect.left;
+    const offsetY = e.clientY - rect.top;
+    e.dataTransfer.setData('application/json', JSON.stringify({ offsetX, offsetY }));
+    
     e.target.style.opacity = '0.5'; 
     
-    // Allow ALL wrappers to catch the drop event
+    // Enable all wrappers as drop targets (even if they already contain a table, as we need their position)
     const wrappers = document.querySelectorAll('.table-element-wrapper');
     wrappers.forEach(w => w.style.pointerEvents = 'auto');
 }
 
 function handleDragOver(e) {
     e.preventDefault(); 
-    // Find the wrapper element that is the actual drop target
+    // Find the nearest wrapper element that is the actual drop target
     const wrapper = e.target.closest('.table-element-wrapper');
     if (wrapper) {
-        wrapper.classList.add('drag-over');
+        // Only highlight if the target is different from the source
+        if (parseInt(wrapper.getAttribute('data-table-id')) !== draggedTableId) {
+             wrapper.classList.add('drag-over');
+        }
     }
 }
 
 function handleDragLeave(e) {
-    // Find the wrapper element that the mouse is leaving
     const wrapper = e.target.closest('.table-element-wrapper');
     if (wrapper) {
         wrapper.classList.remove('drag-over');
@@ -351,52 +353,46 @@ function handleDrop(e, targetWrapper) {
     e.preventDefault();
     targetWrapper.classList.remove('drag-over');
     
+    const mapContainer = targetWrapper.closest('.map-container');
+    const mapRect = mapContainer.getBoundingClientRect();
+    
     const sourceTableId = draggedTableId;
     const sourceTable = allTablesConfig.find(t => t.id === sourceTableId);
     
-    if (!sourceTable) {
-        console.error("Source table not found.");
-        return;
-    }
+    if (!sourceTable) return;
     
-    // Get the gridArea of the target wrapper element where the table was dropped
-    const targetGridArea = targetWrapper.style.gridArea;
+    // Get mouse offsets from dataTransfer
+    const offsetData = JSON.parse(e.dataTransfer.getData('application/json'));
+    const offsetX = offsetData.offsetX;
+    const offsetY = offsetData.offsetY;
+
+    // Calculate new position based on map container (relative to top-left of the container)
+    // We adjust by the mouse offset to place the table correctly under the cursor
+    let newX = ((e.clientX - mapRect.left - offsetX) / mapRect.width) * 100;
+    let newY = ((e.clientY - mapRect.top - offsetY) / mapRect.height) * 100;
+    
+    // Clamp values between 0 and 100%
+    newX = Math.max(0, Math.min(100, newX));
+    newY = Math.max(0, Math.min(100, newY));
+    
+    // --- Update Configuration ---
     const sourceIndex = allTablesConfig.findIndex(t => t.id === sourceTableId);
-    
-    // Find the table currently in the target wrapper (if any)
-    const tableInTargetWrapperId = targetWrapper.getAttribute('data-table-id');
-    
-    if (tableInTargetWrapperId && parseInt(tableInTargetWrapperId) !== sourceTableId) {
-        // --- SCENARIO 1: SWAPPING TWO TABLES ---
-        const targetTable = allTablesConfig.find(t => t.id === parseInt(tableInTargetWrapperId));
-        const targetIndex = allTablesConfig.findIndex(t => t.id === targetTable.id);
+    allTablesConfig[sourceIndex].x = newX.toFixed(2);
+    allTablesConfig[sourceIndex].y = newY.toFixed(2);
 
-        if (targetTable) {
-            // 1. Move the *target* table to the *source* table's old position
-            allTablesConfig[targetIndex].gridArea = sourceTable.gridArea;
-            
-            // 2. Move the *source* table to the *target* table's position
-            allTablesConfig[sourceIndex].gridArea = targetGridArea;
-        }
-
-    } else if (!targetWrapper.querySelector('.table-element') || parseInt(tableInTargetWrapperId) === sourceTableId) {
-        // --- SCENARIO 2: MOVING TO AN EMPTY SPOT (OR DROPPING ON ITSELF) ---
-        allTablesConfig[sourceIndex].gridArea = targetGridArea;
-    }
-
-    // Reset styles on the dragged element
+    // Reset opacity and pointer events
     const draggedElement = document.querySelector(`[ondragstart$='handleDragStart(event, ${sourceTableId})']`);
     if (draggedElement) {
         draggedElement.style.opacity = '1';
     }
     
-    // Final actions
+    // Final actions: Re-render map and save
     renderMap('admin-map-container', false);
     saveTableConfiguration();
     
     draggedTableId = null;
 
-    // Reset pointer-events on all wrappers (important!)
+    // Disable drop events again for stability
     const wrappers = document.querySelectorAll('.table-element-wrapper');
     wrappers.forEach(w => w.style.pointerEvents = 'none');
 }
@@ -785,7 +781,7 @@ function rejectReservation(docId) {
 
 function renderEditTableConfigForm() {
     const container = document.getElementById('table-config-editor');
-    container.innerHTML = '<h4>Edit Table Properties:</h4><p>Use CSS Grid Area to position tables (e.g., 1 / 1 / span 1 / span 1).</p>';
+    container.innerHTML = '<h4>Edit Table Properties:</h4><p>Positions are X/Y percentages from the top-left corner of the map.</p>';
     
     allTablesConfig.forEach((table, index) => {
         container.innerHTML += `
@@ -797,7 +793,8 @@ function renderEditTableConfigForm() {
                     <option value="true" ${table.isVIP ? 'selected' : ''}>Yes</option>
                     <option value="false" ${!table.isVIP ? 'selected' : ''}>No</option>
                 </select><br>
-                Grid Area: <input type="text" value="${table.gridArea}" onchange="updateTableConfig(${index}, 'gridArea', this.value)" placeholder="row / col / row-span / col-span">
+                X: <input type="number" value="${table.x}" onchange="updateTableConfig(${index}, 'x', parseFloat(this.value))" style="width:60px; display:inline-block;" step="0.01"> %
+                Y: <input type="number" value="${table.y}" onchange="updateTableConfig(${index}, 'y', parseFloat(this.value))" style="width:60px; display:inline-block;" step="0.01"> %
             </div>
         `;
     });
@@ -811,9 +808,18 @@ function updateTableConfig(index, key, value) {
 
 function saveTableConfiguration() {
     if (confirm("Are you sure you want to save the new table configuration? This will update the map for all users.")) {
-        db.collection("marina_data").doc("tables").update({ config: allTablesConfig })
+        // Ensure X/Y values are saved as strings with two decimal places
+        const sanitizedConfig = allTablesConfig.map(table => ({
+            ...table,
+            x: parseFloat(table.x).toFixed(2),
+            y: parseFloat(table.y).toFixed(2)
+        }));
+
+        db.collection("marina_data").doc("tables").update({ config: sanitizedConfig })
             .then(() => {
                 alert("Table configuration updated successfully!");
+                // Force reload local config to ensure new precision is used
+                allTablesConfig = sanitizedConfig;
             })
             .catch(err => alert("Error saving table configuration: " + err.message));
     }
