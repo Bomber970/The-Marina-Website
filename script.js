@@ -8,16 +8,23 @@ const firebaseConfig = {
   appId: "1:955663143694:web:1f54138e2c666481543d5f"
 };
 
-// Initialize Firebase
-firebase.initializeApp(firebaseConfig);
-const db = firebase.firestore();
+if (typeof firebase !== 'undefined') {
+    firebase.initializeApp(firebaseConfig);
+    var db = firebase.firestore();
+} else { console.error("Firebase SDK not loaded."); var db = null; }
 
-/* ================= WEBHOOKS ================= */
+/* ================= WEBHOOKS & GLOBALS ================= */
 const WEBHOOK_APPS = "https://discord.com/api/webhooks/1449133910071054378/WnfKNZx_Qvef-WATbJbrQ6vog1JX3OIC4_fpWShp5lIKyQmV2_sD1kSQnauXq07fduFl";
 const WEBHOOK_RES = "https://discord.com/api/webhooks/1449134540730929187/OfaO8GcR1_JZgpswRh0sPbMYS19wQYDGn0Y1FdrhqaWieItAuLaUoGBcHxSlhTMijsvh";
 const WEBHOOK_RENTAL = "https://discord.com/api/webhooks/1449134644997132329/SlYFGqa-KBcjkuPkY2brntEDhlU8iROZoM5xXOpuAOenBL6-9ssrTNZDctY1rfNU_Oiu";
 
-/* ================= DATA INITIALIZATION ================= */
+let teamData = [];
+let financialData = [];
+let reservations = [];
+let events = []; // NEW: Events Array
+let currentUserRole = null;
+
+// Fallback Data
 const defaultTeam = [
     { name: "Russ", title: "Owner", desc: "The Visionary", img: "img/RussMarina.png" },
     { name: "Kaizo", title: "Co-Owner", desc: "Head Chef", img: "img/KaizoMarina.png" },
@@ -29,65 +36,63 @@ const defaultTeam = [
 const defaultFinancials = [
     { cat: "Combo", name: "The Catering Bundle", contents: "50 Apps + 50 Entrees + 50 Drinks", cost: 1850, price: 5000, status: "💰 HUGE" },
     { cat: "Service", name: "(D) The 5 Star Experience", contents: "2 Apps + 2 Entrees + 2 Drinks", cost: 74, price: 1000, status: "👑 Premium" },
-    { cat: "Service", name: "(D) The Extra Lifeboat", contents: "1 App + 1 Entree + 1 Drink", cost: 37, price: 500, status: "👑 Premium" },
-    { cat: "Combo", name: "Blue Lady Roll 5x5 Healthy", contents: "5 Healthy Sushi + 5 Drinks", cost: 255, price: 600, status: "🔥 High Margin" },
-    { cat: "Combo", name: "The Shamu Combo 10x10", contents: "10 Entrees + 10 Drinks (Boil/Lobster Only)", cost: 290, price: 620, status: "💰 Great" },
-    { cat: "Combo", name: "The Captain's Combo 5x5", contents: "5 Entrees + 5 Drinks (Boil/Lobster Only)", cost: 145, price: 350, status: "💰 Great" },
-    { cat: "Service", name: "(D) Service Charge", contents: "Fee Only", cost: 0, price: 200, status: "💵 Pure Profit" },
-    { cat: "Combo", name: "Service Combo (PD/EMS)", contents: "5 Entrees + 5 Drinks (Boil/Lobster Only)", cost: 145, price: 250, status: "✅ Good" },
-    { cat: "Combo", name: "The Mino 1x1", contents: "1 Entree + 1 Drink (Calc. w/ Alfredo)", cost: 35, price: 100, status: "🔥 Best Value" },
-    { cat: "Entree", name: "Healthy Sushi", contents: "1 Healthy Sushi", cost: 46, price: 100, status: "🔥 High Margin" },
-    { cat: "Entree", name: "8oz Lobster Tail", contents: "10 Frozen Meat ($14ea) + Dough", cost: 24, price: 75, status: "🔥 High Margin" },
-    { cat: "Entree", name: "Shrimp Alfredo", contents: "10 Premium Meat ($20ea) + Dough", cost: 30, price: 75, status: "✅ Good" },
-    { cat: "Combo", name: "Tacklebox Combo 3x3", contents: "3 Entrees + 3 Drinks (Calc. w/ Alfredo)", cost: 105, price: 150, status: "⚠️ Low Profit" },
-    { cat: "Drink", name: "Mint Mojito", contents: "1 Mint Mojito", cost: 5, price: 45, status: "🔥 High Margin" },
-    { cat: "Appetizer", name: "Coconut Shrimp", contents: "5 Frozen Meat ($14ea) + Salt", cost: 8, price: 30, status: "🆗 Standard" },
-    { cat: "Entree", name: "Alamo Seafood Boil", contents: "10 Frozen Meat ($14ea) + Dough", cost: 24, price: 40, status: "⚠️ Low Margin" }
+    { cat: "Entree", name: "8oz Lobster Tail", contents: "10 Frozen Meat ($14ea) + Dough", cost: 24, price: 75, status: "🔥 High Margin" }
 ];
 
-let teamData = [];
-let financialData = [];
-let reservations = [];
-let currentUserRole = null; 
-
-/* ================= INITIAL LOAD (FIREBASE) ================= */
+/* ================= INITIAL LOAD ================= */
 document.addEventListener('DOMContentLoaded', () => {
-    // 1. Listen for Team Data
+    if (!db) return;
+
+    // Load Team
     db.collection("marina_data").doc("team").onSnapshot((doc) => {
-        if (doc.exists) {
-            teamData = doc.data().members;
-            renderPublicTeam();
-            if(currentUserRole === 'superadmin') renderEditTeamForm();
-        } else {
-            // First time setup
-            db.collection("marina_data").doc("team").set({ members: defaultTeam });
-        }
+        if (doc.exists) { teamData = doc.data().members; } 
+        else { db.collection("marina_data").doc("team").set({ members: defaultTeam }); teamData = defaultTeam; }
+        renderPublicTeam();
+        if(currentUserRole === 'superadmin') renderEditTeamForm();
     });
 
-    // 2. Listen for Financial/Menu Data
+    // Load Financials
     db.collection("marina_data").doc("financials").onSnapshot((doc) => {
-        if (doc.exists) {
-            financialData = doc.data().items;
-            renderPublicMenu();
-            if(currentUserRole === 'superadmin') renderFinancialsTable();
-            if(currentUserRole) renderAdminMenuView();
-        } else {
-            // First time setup
-            db.collection("marina_data").doc("financials").set({ items: defaultFinancials });
-        }
+        if (doc.exists) { financialData = doc.data().items; } 
+        else { db.collection("marina_data").doc("financials").set({ items: defaultFinancials }); financialData = defaultFinancials; }
+        renderPublicMenu();
+        if(currentUserRole === 'superadmin') renderFinancialsTable();
+        if(currentUserRole) renderAdminMenuView();
     });
 
-    // 3. Listen for Reservations
+    // Load Reservations
     db.collection("reservations").orderBy("timestamp", "desc").onSnapshot((snapshot) => {
         reservations = [];
-        snapshot.forEach(doc => reservations.push(doc.data()));
+        snapshot.forEach(doc => { let data = doc.data(); data.docId = doc.id; reservations.push(data); });
         if(currentUserRole) renderAdminReservations();
+    });
+
+    // NEW: Load Events
+    db.collection("events").orderBy("date", "asc").onSnapshot((snapshot) => {
+        events = [];
+        snapshot.forEach(doc => { let data = doc.data(); data.docId = doc.id; events.push(data); });
+        renderPublicEvents(); // Show on homepage
+        if(currentUserRole) renderAdminEvents(); // Show in admin
     });
 
     setupBubbles();
 });
 
-/* ================= UTILS ================= */
+/* ================= UTILS & UI ================= */
+function openModal(id) { document.getElementById(id).style.display = 'flex'; }
+function closeModal(id) { document.getElementById(id).style.display = 'none'; }
+
+function setupBubbles() {
+    const bubbles = document.querySelectorAll('.bubble');
+    bubbles.forEach(b => {
+        b.addEventListener('click', function(e) {
+            if(this.classList.contains('popping')) return;
+            this.classList.add('popping');
+            setTimeout(() => { this.classList.remove('popping'); this.style.animation = 'none'; this.offsetHeight; this.style.animation = ''; }, 200);
+        });
+    });
+}
+
 function sendToDiscord(url, embedData) {
     fetch(url, {
         method: "POST",
@@ -96,68 +101,63 @@ function sendToDiscord(url, embedData) {
     }).catch(err => console.error("Discord Error:", err));
 }
 
-function setupBubbles() {
-    const bubbles = document.querySelectorAll('.bubble');
-    bubbles.forEach(b => {
-        b.addEventListener('click', function(e) {
-            if(this.classList.contains('popping')) return;
-            this.classList.add('popping');
-            setTimeout(() => {
-                this.classList.remove('popping');
-                this.style.animation = 'none';
-                this.offsetHeight; 
-                this.style.animation = ''; 
-            }, 200);
-        });
-    });
-}
-
-function openModal(id) { document.getElementById(id).style.display = 'flex'; }
-function closeModal(id) { document.getElementById(id).style.display = 'none'; }
-
-/* ================= PUBLIC FUNCTIONS ================= */
+/* ================= PUBLIC RENDER FUNCTIONS ================= */
 function createTeamCard(member) {
     if(!member) return '';
-    return `
-        <div class="team-card">
-            <img src="${member.img}" class="team-photo" alt="${member.name}" onerror="this.src='https://via.placeholder.com/80'">
-            <h3>${member.name}</h3>
-            <p><strong>${member.title}</strong></p>
-            <p>${member.desc}</p>
-        </div>
-    `;
+    return `<div class="team-card">
+        <img src="${member.img}" class="team-photo" onerror="this.src='https://via.placeholder.com/80'">
+        <h3>${member.name}</h3><p><strong>${member.title}</strong></p><p>${member.desc}</p>
+    </div>`;
 }
 
 function renderPublicTeam() {
     const container = document.getElementById('all-staff-container');
     container.innerHTML = '';
-    teamData.forEach(member => {
-        container.innerHTML += createTeamCard(member);
-    });
+    teamData.forEach(member => container.innerHTML += createTeamCard(member));
 }
 
 function renderPublicMenu() {
     const list = document.getElementById('public-menu-list');
     list.innerHTML = '';
-    const hideDescription = [
-        "Healthy Sushi", "8oz Lobster Tail", "Shrimp Alfredo", 
-        "Tacklebox Combo 3x3", "Mint Mojito", "Coconut Shrimp", "Alamo Seafood Boil"
-    ];
     financialData.forEach(item => {
-        let descHtml = '';
-        if (!hideDescription.includes(item.name)) {
-            descHtml = `<br><span style="font-size:0.9rem; color: #555;">${item.contents}</span>`;
-        }
-        list.innerHTML += `
-            <li style="margin-bottom:10px; border-bottom:1px solid #eee; padding-bottom:5px;">
-                <strong style="font-size:1.1rem; color: #00334e;">${item.name}</strong>
-                ${descHtml}
-            </li>`;
+        list.innerHTML += `<li style="margin-bottom:10px; border-bottom:1px solid #eee; padding-bottom:5px;">
+            <strong style="font-size:1.1rem; color: #00334e;">${item.name}</strong><br>
+            <span style="font-size:0.9rem; color: #555;">${item.contents}</span>
+        </li>`;
     });
 }
 
-/* ================= FORMS & DB WRITES ================= */
+// NEW: Render Event Card on Homepage
+function renderPublicEvents() {
+    const container = document.getElementById('event-display-container');
+    // Get upcoming, CONFIRMED events
+    const upcomingEvents = events.filter(e => e.status === 'confirmed' && new Date(e.date) > new Date());
+    
+    if (upcomingEvents.length === 0) {
+        container.style.display = 'none';
+        return;
+    }
 
+    const nextEvent = upcomingEvents[0]; // Show nearest event
+    const dateObj = new Date(nextEvent.date);
+    const dateStr = dateObj.toLocaleDateString() + ' ' + dateObj.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+
+    container.style.display = 'flex';
+    container.innerHTML = `
+        <div class="event-card-public">
+            <img src="${nextEvent.image}" alt="Event" class="event-img" onerror="this.src='https://via.placeholder.com/200?text=Event'">
+            <div class="event-details">
+                <span class="event-badge">UPCOMING EVENT</span>
+                <h2>${nextEvent.title}</h2>
+                <h4>📅 ${dateStr} &nbsp;|&nbsp; 📍 ${nextEvent.location}</h4>
+                <p>${nextEvent.desc}</p>
+                ${nextEvent.isDinner ? `<button onclick="openModal('reservation-modal')" class="btn btn-primary">Book a Table</button>` : ''}
+            </div>
+        </div>
+    `;
+}
+
+/* ================= FORMS ================= */
 // Reservation
 document.getElementById('reservation-form').addEventListener('submit', (e) => {
     e.preventDefault();
@@ -168,239 +168,126 @@ document.getElementById('reservation-form').addEventListener('submit', (e) => {
         size: document.getElementById('res-size').value,
         timestamp: firebase.firestore.FieldValue.serverTimestamp()
     };
-
-    // Save to Firebase
     db.collection("reservations").add(newRes);
-
-    // Discord
-    const embed = {
-        title: "🍽️ New Table Reservation",
-        color: 3066993,
-        fields: [
-            { name: "Name", value: newRes.name, inline: true },
-            { name: "Phone", value: newRes.phone, inline: true },
-            { name: "Party Size", value: newRes.size, inline: true },
-            { name: "Date/Time", value: newRes.date.replace('T', ' '), inline: false }
-        ],
-        footer: { text: "The Marina Automated System" }
-    };
-    sendToDiscord(WEBHOOK_RES, embed);
-
-    alert("Reservation Request Sent!");
-    closeModal('reservation-modal');
-    e.target.reset();
+    sendToDiscord(WEBHOOK_RES, {
+        title: "📅 New Reservation Request", color: 15844367,
+        fields: [{ name: "Name", value: newRes.name, inline: true }, { name: "Size", value: newRes.size, inline: true }, { name: "Phone", value: newRes.phone, inline: true }, { name: "Date", value: newRes.date.replace('T', ' '), inline: false }]
+    });
+    alert("Reservation Sent!"); closeModal('reservation-modal'); e.target.reset();
 });
 
 // Rental
 document.getElementById('rental-form').addEventListener('submit', (e) => {
     e.preventDefault();
-    const rental = {
-        name: document.getElementById('rent-name').value,
-        type: document.getElementById('rent-type').value,
-        staff: document.getElementById('rent-staffing').value
-    };
-
-    const embed = {
-        title: "🥂 New Venue Rental Inquiry",
-        color: 15844367,
-        fields: [
-            { name: "Organization/Name", value: rental.name, inline: true },
-            { name: "Event Type", value: rental.type, inline: true },
-            { name: "Staffing Required?", value: rental.staff, inline: false }
-        ],
-        footer: { text: "The Marina Automated System" }
-    };
-    sendToDiscord(WEBHOOK_RENTAL, embed);
-
-    alert("Rental Inquiry Sent!");
-    closeModal('rental-modal');
-    e.target.reset();
+    const rental = { name: document.getElementById('rent-name').value, type: document.getElementById('rent-type').value, staff: document.getElementById('rent-staffing').value };
+    sendToDiscord(WEBHOOK_RENTAL, { title: "🥂 Venue Rental Inquiry", color: 15844367, fields: [{ name: "Name", value: rental.name }, { name: "Type", value: rental.type }, { name: "Staffing", value: rental.staff }] });
+    alert("Inquiry Sent!"); closeModal('rental-modal'); e.target.reset();
 });
 
-// Applications
+// Application
 document.getElementById('application-form').addEventListener('submit', (e) => {
     e.preventDefault();
-    const app = {
-        discord: document.getElementById('app-discord').value,
-        icName: document.getElementById('app-ic-name').value,
-        id: document.getElementById('app-id').value,
-        phone: document.getElementById('app-phone').value,
-        storm: document.getElementById('app-storm').value,
-        exp: document.getElementById('app-exp').value,
-        mot: document.getElementById('app-mot').value,
-        timestamp: firebase.firestore.FieldValue.serverTimestamp()
-    };
-
-    // Save to Firebase
+    const app = { discord: document.getElementById('app-discord').value, icName: document.getElementById('app-ic-name').value, id: document.getElementById('app-id').value, phone: document.getElementById('app-phone').value, storm: document.getElementById('app-storm').value, exp: document.getElementById('app-exp').value, mot: document.getElementById('app-mot').value };
     db.collection("applications").add(app);
-
-    const embed = {
-        title: "📝 New Job Application",
-        color: 3447003,
-        fields: [
-            { name: "Discord", value: app.discord, inline: true },
-            { name: "IC Name", value: app.icName, inline: true },
-            { name: "State ID", value: app.id, inline: true },
-            { name: "Phone", value: app.phone, inline: true },
-            { name: "Availability", value: app.storm + " Storm", inline: false },
-            { name: "Experience", value: app.exp || "None provided", inline: false },
-            { name: "Motivation", value: app.mot || "None provided", inline: false }
-        ],
-        footer: { text: "The Marina Automated System" }
-    };
-    sendToDiscord(WEBHOOK_APPS, embed);
-
-    alert("Application Submitted! Good luck.");
-    closeModal('application-modal');
-    e.target.reset();
+    sendToDiscord(WEBHOOK_APPS, { title: "📝 Job Application", color: 3447003, fields: [{ name: "Discord", value: app.discord, inline: true }, { name: "Name", value: app.icName, inline: true }, { name: "ID", value: app.id, inline: true }] });
+    alert("Application Submitted!"); closeModal('application-modal'); e.target.reset();
 });
 
 /* ================= ADMIN FUNCTIONS ================= */
 function attemptLogin() {
     const input = document.getElementById('admin-code').value;
-    const errorMsg = document.getElementById('login-error');
-
-    if (input === 'marina25') {
-        currentUserRole = 'admin';
-        setupAdminPanel();
-    } else if (input === 'marinA25') {
-        currentUserRole = 'superadmin';
-        setupAdminPanel();
-    } else {
-        errorMsg.textContent = "Invalid Code.";
-        return;
-    }
-    closeModal('login-modal');
-    document.getElementById('admin-code').value = '';
-    errorMsg.textContent = '';
-    openModal('admin-panel');
+    if (input === 'marina25') { currentUserRole = 'admin'; setupAdminPanel(); }
+    else if (input === 'marinA25') { currentUserRole = 'superadmin'; setupAdminPanel(); }
+    else { document.getElementById('login-error').innerText = "Invalid Code"; return; }
+    closeModal('login-modal'); openModal('admin-panel');
 }
 
-function logout() {
-    currentUserRole = null;
-    closeModal('admin-panel');
-    alert("Logged out.");
-}
+function logout() { currentUserRole = null; closeModal('admin-panel'); alert("Logged out."); }
 
 function setupAdminPanel() {
-    const title = document.getElementById('admin-title');
-    const superTabs = document.querySelectorAll('.super-only');
+    document.getElementById('admin-title').innerText = currentUserRole === 'superadmin' ? "Admin Panel (Super)" : "Admin Panel";
+    document.querySelectorAll('.super-only').forEach(el => el.style.display = currentUserRole === 'superadmin' ? 'block' : 'none');
     
     renderAdminReservations();
     renderAdminMenuView();
-
-    if (currentUserRole === 'superadmin') {
-        title.textContent = "Admin Panel (Superadmin)";
-        superTabs.forEach(el => el.style.display = 'block');
-        renderFinancialsTable();
-        renderEditTeamForm();
-    } else {
-        title.textContent = "Admin Panel";
-        superTabs.forEach(el => el.style.display = 'none');
-    }
+    renderAdminEvents(); // NEW
+    if(currentUserRole === 'superadmin') { renderFinancialsTable(); renderEditTeamForm(); }
 }
 
 function switchTab(tabId) {
     document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
     document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
     document.getElementById(tabId).classList.add('active');
-    
-    const buttons = document.querySelectorAll('.tab-btn');
-    buttons.forEach(btn => {
-        if(btn.getAttribute('onclick').includes(tabId)) btn.classList.add('active');
+    event.target.classList.add('active');
+}
+
+// EVENTS LOGIC (NEW)
+function createNewEvent() {
+    const title = document.getElementById('evt-title').value;
+    const date = document.getElementById('evt-date').value;
+    const img = document.getElementById('evt-img').value;
+    const loc = document.getElementById('evt-loc').value;
+    const desc = document.getElementById('evt-desc').value;
+    const isDinner = document.getElementById('evt-is-dinner').checked;
+
+    if(!title || !date || !img || !loc || !desc) { alert("All fields required"); return; }
+
+    db.collection("events").add({
+        title, date, image: img, location: loc, desc, isDinner,
+        status: 'pending', // Default to pending
+        timestamp: firebase.firestore.FieldValue.serverTimestamp()
+    });
+    alert("Event created! Status: Pending (Needs SADMIN confirmation)");
+    // Clear form
+    document.getElementById('evt-title').value = ''; document.getElementById('evt-date').value = ''; 
+    document.getElementById('evt-img').value = ''; document.getElementById('evt-loc').value = ''; document.getElementById('evt-desc').value = '';
+}
+
+function renderAdminEvents() {
+    const tbody = document.getElementById('admin-events-body');
+    tbody.innerHTML = '';
+    events.forEach(ev => {
+        let confirmBtn = '';
+        if(ev.status === 'pending' && currentUserRole === 'superadmin') {
+            confirmBtn = `<button class="btn btn-primary btn-small" onclick="confirmEvent('${ev.docId}')">Confirm</button> `;
+        }
+        
+        let statusColor = ev.status === 'confirmed' ? 'green' : 'orange';
+
+        tbody.innerHTML += `<tr>
+            <td>${ev.title}</td>
+            <td>${ev.date.replace('T', ' ')}</td>
+            <td>${ev.isDinner ? 'Dinner' : 'Event'}</td>
+            <td style="color:${statusColor}; font-weight:bold;">${ev.status.toUpperCase()}</td>
+            <td>
+                ${confirmBtn}
+                <button class="btn btn-danger btn-small" onclick="deleteEvent('${ev.docId}')">Delete</button>
+            </td>
+        </tr>`;
     });
 }
 
+function confirmEvent(docId) { if(confirm("Confirm this event? It will appear on homepage.")) db.collection("events").doc(docId).update({status: 'confirmed'}); }
+function deleteEvent(docId) { if(confirm("Delete this event?")) db.collection("events").doc(docId).delete(); }
+
+// RESERVATIONS LOGIC
 function renderAdminReservations() {
     const tbody = document.getElementById('admin-res-body');
     tbody.innerHTML = '';
-    if(reservations.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="4">No reservations.</td></tr>';
-        return;
-    }
     reservations.forEach(res => {
-        tbody.innerHTML += `<tr><td>${res.name}</td><td>${res.date.replace('T', ' ')}</td><td>${res.size}</td><td>${res.phone}</td></tr>`;
+        tbody.innerHTML += `<tr><td>${res.name}</td><td>${res.date.replace('T', ' ')}</td><td>${res.size}</td><td>${res.phone}</td>
+        <td><button class="btn btn-danger btn-small" onclick="deleteRes('${res.docId}')">Delete</button></td></tr>`;
     });
 }
+function deleteRes(id) { if(confirm("Delete reservation?")) db.collection("reservations").doc(id).delete(); }
 
-function renderAdminMenuView() {
-    const div = document.getElementById('admin-menu-view-list');
-    div.innerHTML = '<ul style="list-style:none; padding:0;">';
-    financialData.forEach(item => { 
-        div.innerHTML += `<li style="padding:5px; border-bottom:1px solid #eee;">
-            <strong>${item.name}</strong> - ${item.contents}
-        </li>`; 
-    });
-    div.innerHTML += '</ul>';
-}
-
-// === SUPERADMIN: FINANCIALS ===
-function renderFinancialsTable() {
-    const tbody = document.getElementById('financial-body');
-    tbody.innerHTML = '';
-    financialData.forEach((item, index) => {
-        const profit = item.price - item.cost;
-        const profitClass = profit >= 0 ? 'profit-positive' : 'profit-negative';
-        
-        tbody.innerHTML += `
-            <tr>
-                <td><input type="text" value="${item.cat}" onchange="updateFinData(${index}, 'cat', this.value)" style="width:70px"></td>
-                <td><input type="text" value="${item.name}" onchange="updateFinData(${index}, 'name', this.value)"></td>
-                <td><input type="text" value="${item.contents}" onchange="updateFinData(${index}, 'contents', this.value)"></td>
-                <td><input type="number" value="${item.cost}" onchange="updateFinData(${index}, 'cost', this.value)" style="width:60px"></td>
-                <td><input type="number" value="${item.price}" onchange="updateFinData(${index}, 'price', this.value)" style="width:60px"></td>
-                <td class="${profitClass}">$${profit}</td>
-                <td><input type="text" value="${item.status}" onchange="updateFinData(${index}, 'status', this.value)" style="width:100px"></td>
-                <td><button class="btn btn-danger btn-small" onclick="deleteProduct(${index})">X</button></td>
-            </tr>
-        `;
-    });
-}
-
-function updateFinData(index, key, value) {
-    if(key === 'cost' || key === 'price') value = parseFloat(value);
-    financialData[index][key] = value;
-}
-
-function addNewProductRow() {
-    financialData.push({ cat: "New", name: "Item", contents: "Desc", cost: 0, price: 0, status: "Active" });
-    renderFinancialsTable();
-}
-
-function deleteProduct(index) {
-    if(confirm("Delete item?")) {
-        financialData.splice(index, 1);
-        renderFinancialsTable();
-    }
-}
-
-function saveFinancials() {
-    db.collection("marina_data").doc("financials").update({ items: financialData })
-    .then(() => alert("Financials Saved to Database!"))
-    .catch(err => alert("Error saving: " + err.message));
-}
-
-// === SUPERADMIN: TEAM ===
-function renderEditTeamForm() {
-    const container = document.getElementById('edit-team-container');
-    container.innerHTML = '';
-    teamData.forEach((member, index) => {
-        container.innerHTML += `
-            <div style="border:1px solid #ccc; padding:5px; margin-bottom:5px; border-radius:5px; background:#f9f9f9; font-size:0.8rem;">
-                <strong>Staff Member #${index + 1}</strong><br>
-                Name: <input type="text" value="${member.name}" onchange="updateTeamData(${index}, 'name', this.value)"><br>
-                Title: <input type="text" value="${member.title}" onchange="updateTeamData(${index}, 'title', this.value)"><br>
-                Desc: <input type="text" value="${member.desc}" onchange="updateTeamData(${index}, 'desc', this.value)"><br>
-                Img URL: <input type="text" value="${member.img}" onchange="updateTeamData(${index}, 'img', this.value)">
-            </div>
-        `;
-    });
-}
-
-function updateTeamData(index, key, value) { teamData[index][key] = value; }
-
-function saveTeamChanges() {
-    db.collection("marina_data").doc("team").update({ members: teamData })
-    .then(() => alert("Team Updated in Database!"))
-    .catch(err => alert("Error saving: " + err.message));
-}
+// FINANCIALS & TEAM LOGIC
+function renderAdminMenuView() { const div = document.getElementById('admin-menu-view-list'); div.innerHTML = '<ul>'; financialData.forEach(i => div.innerHTML += `<li>${i.name} ($${i.price})</li>`); div.innerHTML += '</ul>'; }
+function renderFinancialsTable() { const tb = document.getElementById('financial-body'); tb.innerHTML = ''; financialData.forEach((item, i) => { tb.innerHTML += `<tr><td><input value="${item.cat}" onchange="updFin(${i},'cat',this.value)"></td><td><input value="${item.name}" onchange="updFin(${i},'name',this.value)"></td><td><input value="${item.contents}" onchange="updFin(${i},'contents',this.value)"></td><td><input type="number" value="${item.cost}" onchange="updFin(${i},'cost',this.value)"></td><td><input type="number" value="${item.price}" onchange="updFin(${i},'price',this.value)"></td><td><button onclick="delFin(${i})">X</button></td></tr>`; }); }
+function updFin(i,k,v) { financialData[i][k] = (k==='cost'||k==='price') ? parseFloat(v) : v; }
+function delFin(i) { financialData.splice(i,1); renderFinancialsTable(); }
+function addNewProductRow() { financialData.push({cat:"",name:"",contents:"",cost:0,price:0,status:""}); renderFinancialsTable(); }
+function saveFinancials() { db.collection("marina_data").doc("financials").update({items:financialData}).then(()=>alert("Saved")); }
+function renderEditTeamForm() { const c = document.getElementById('edit-team-container'); c.innerHTML = ''; teamData.forEach((m,i) => { c.innerHTML += `<div><input value="${m.name}" onchange="updTeam(${i},'name',this.value)"> <input value="${m.title}" onchange="updTeam(${i},'title',this.value)"></div>`; }); }
+function updTeam(i,k,v) { teamData[i][k] = v; }
+function saveTeamChanges() { db.collection("marina_data").doc("team").update({members:teamData}).then(()=>alert("Saved")); }

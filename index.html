@@ -14,13 +14,15 @@
         <div class="bubble"></div><div class="bubble"></div><div class="bubble"></div>
         <div class="bubble"></div><div class="bubble"></div><div class="bubble"></div>
         <div class="bubble"></div><div class="bubble"></div><div class="bubble"></div>
-        <div class="bubble"></div><div class="bubble"></div><div class="bubble"></div>
     </div>
 
     <div class="main-wrapper">
         
+        <section id="event-display-container" class="interactive-element" style="display: none;">
+            </section>
+
         <header class="hero interactive-element">
-            <img src="Marina-Square-Samdy-Shores-v1.png" alt="The Marina Logo" class="main-logo">
+            <img src="Marina-Square-Samdy-Shores-v1.png" alt="The Marina Logo" class="main-logo" onerror="this.style.display='none'; document.write('<h1 style=\'font-size:3rem;\'>The Marina</h1>')">
         </header>
 
         <section id="team-section" class="interactive-element">
@@ -97,37 +99,21 @@
             <span class="close" onclick="closeModal('application-modal')">&times;</span>
             <h2>Job Application</h2>
             <form id="application-form">
-                <label>Discord Name:</label> 
-                <input type="text" id="app-discord" placeholder="Example#1234" required>
-                
-                <label>First & Last Name:</label> 
-                <input type="text" id="app-ic-name" required>
-                
+                <label>Discord Name:</label> <input type="text" id="app-discord" placeholder="Example#1234" required>
+                <label>First & Last Name:</label> <input type="text" id="app-ic-name" required>
                 <div style="display:flex; gap:10px;">
-                    <div style="flex:1;">
-                        <label>State ID:</label> 
-                        <input type="number" id="app-id" required>
-                    </div>
-                    <div style="flex:1;">
-                        <label>Phone Number:</label> 
-                        <input type="text" id="app-phone" required>
-                    </div>
+                    <div style="flex:1;"><label>State ID:</label> <input type="number" id="app-id" required></div>
+                    <div style="flex:1;"><label>Phone:</label> <input type="text" id="app-phone" required></div>
                 </div>
-
-                <label>Availability (Storm):</label>
+                <label>Availability:</label>
                 <select id="app-storm">
                     <option value="EU">EU Storm</option>
                     <option value="NA">NA Storm</option>
                     <option value="AU">AU Storm</option>
                     <option value="Flexible">Flexible / Mixed</option>
                 </select>
-
-                <label>Experience:</label> 
-                <textarea id="app-exp" rows="3" placeholder="Previous experience?"></textarea>
-
-                <label>Motivation:</label> 
-                <textarea id="app-mot" rows="3" placeholder="Why The Marina?"></textarea>
-
+                <label>Experience:</label> <textarea id="app-exp" rows="3"></textarea>
+                <label>Motivation:</label> <textarea id="app-mot" rows="3"></textarea>
                 <button type="submit" class="btn btn-accent">Submit Application</button>
             </form>
         </div>
@@ -151,46 +137,60 @@
             </div>
             <div class="admin-tabs">
                 <button class="tab-btn active" onclick="switchTab('tab-reservations')">Reservations</button>
+                <button class="tab-btn" onclick="switchTab('tab-events')">Events</button>
                 <button class="tab-btn" onclick="switchTab('tab-menu-view')">Menu View</button>
                 <button class="tab-btn super-only" onclick="switchTab('tab-financials')">Finance</button>
                 <button class="tab-btn super-only" onclick="switchTab('tab-edit-site')">Edit Team</button>
             </div>
             
             <div id="tab-reservations" class="tab-content active">
-                <table class="data-table">
-                    <thead><tr><th>Name</th><th>Date</th><th>Size</th><th>Phone</th></tr></thead>
-                    <tbody id="admin-res-body">
-                        <tr><td colspan="4">Loading...</td></tr>
-                    </tbody>
-                </table>
-            </div>
-
-            <div id="tab-menu-view" class="tab-content">
-                <div id="admin-menu-view-list"></div>
-            </div>
-
-            <div id="tab-financials" class="tab-content">
+                <h3>Incoming Reservations</h3>
                 <div class="table-scroll-wrapper">
                     <table class="data-table">
-                        <thead>
-                            <tr>
-                                <th>Category</th>
-                                <th>Item Name</th>
-                                <th>Contents / Notes</th>
-                                <th>Cost</th>
-                                <th>Price</th>
-                                <th>Profit</th>
-                                <th>Status</th>
-                                <th>X</th>
-                            </tr>
-                        </thead>
-                        <tbody id="financial-body"></tbody>
+                        <thead><tr><th>Name</th><th>Date</th><th>Size</th><th>Phone</th><th>Action</th></tr></thead>
+                        <tbody id="admin-res-body"></tbody>
                     </table>
                 </div>
-                <div style="margin-top:10px;">
-                    <button onclick="addNewProductRow()" class="btn btn-small">+ Add Item</button>
-                    <button onclick="saveFinancials()" class="btn btn-primary">Save Changes</button>
+            </div>
+
+            <div id="tab-events" class="tab-content">
+                <h3>Create New Event</h3>
+                <div style="background:#f9f9f9; padding:15px; border-radius:10px; border:1px solid #ddd; margin-bottom:20px;">
+                    <div style="display:flex; gap:10px;">
+                        <div style="flex:1;">
+                            <label>Event Title:</label> <input type="text" id="evt-title" placeholder="e.g. Lobster Night">
+                        </div>
+                        <div style="flex:1;">
+                            <label>Date & Time:</label> <input type="datetime-local" id="evt-date">
+                        </div>
+                    </div>
+                    <label>Image URL (Flyer):</label> <input type="text" id="evt-img" placeholder="https://imgur.com/...">
+                    <label>Location:</label> <input type="text" id="evt-loc" placeholder="e.g. Main Hall or Balcony">
+                    <label>Description:</label> <textarea id="evt-desc" rows="2"></textarea>
+                    
+                    <label style="display:flex; align-items:center; gap:10px; cursor:pointer;">
+                        <input type="checkbox" id="evt-is-dinner" style="width:auto; margin:0;"> 
+                        Is this a Dinner Service? (Adds 'Book Table' button)
+                    </label>
+                    <br>
+                    <button onclick="createNewEvent()" class="btn btn-accent">Submit Event for Approval</button>
                 </div>
+
+                <h3>Event List</h3>
+                <div class="table-scroll-wrapper">
+                    <table class="data-table">
+                        <thead><tr><th>Title</th><th>Date</th><th>Type</th><th>Status</th><th>Action</th></tr></thead>
+                        <tbody id="admin-events-body"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div id="tab-menu-view" class="tab-content"><div id="admin-menu-view-list"></div></div>
+
+            <div id="tab-financials" class="tab-content">
+                <div class="table-scroll-wrapper"><table class="data-table"><tbody id="financial-body"></tbody></table></div>
+                <button onclick="addNewProductRow()" class="btn btn-small">+ Add Item</button>
+                <button onclick="saveFinancials()" class="btn btn-primary">Save Changes</button>
             </div>
 
             <div id="tab-edit-site" class="tab-content">
@@ -202,7 +202,6 @@
 
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
-    
     <script src="script.js"></script>
 </body>
 </html>
