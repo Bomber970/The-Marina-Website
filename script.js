@@ -127,7 +127,7 @@ function renderPublicMenu() {
     });
 }
 
-// NEW: Render Event Card on Homepage
+// NEW: Render Event POPUP
 function renderPublicEvents() {
     const container = document.getElementById('event-display-container');
     // Get upcoming, CONFIRMED events
@@ -142,19 +142,26 @@ function renderPublicEvents() {
     const dateObj = new Date(nextEvent.date);
     const dateStr = dateObj.toLocaleDateString() + ' ' + dateObj.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
 
-    container.style.display = 'flex';
+    container.style.display = 'block';
     container.innerHTML = `
-        <div class="event-card-public">
-            <img src="${nextEvent.image}" alt="Event" class="event-img" onerror="this.src='https://via.placeholder.com/200?text=Event'">
-            <div class="event-details">
-                <span class="event-badge">UPCOMING EVENT</span>
-                <h2>${nextEvent.title}</h2>
-                <h4>📅 ${dateStr} &nbsp;|&nbsp; 📍 ${nextEvent.location}</h4>
+        <div class="event-popup-container">
+            <div class="event-popup-header">
+                <img src="${nextEvent.image}" class="event-popup-img" onerror="this.src='https://via.placeholder.com/300x150?text=The+Marina'">
+                <button class="event-close-btn" onclick="closeEventPopup()">X</button>
+            </div>
+            <div class="event-popup-body">
+                <span class="event-popup-badge">Upcoming</span>
+                <h3>${nextEvent.title}</h3>
+                <h5>📅 ${dateStr} @ ${nextEvent.location}</h5>
                 <p>${nextEvent.desc}</p>
-                ${nextEvent.isDinner ? `<button onclick="openModal('reservation-modal')" class="btn btn-primary">Book a Table</button>` : ''}
+                ${nextEvent.isDinner ? `<button onclick="openModal('reservation-modal')" class="btn btn-primary btn-small">Book Table</button>` : ''}
             </div>
         </div>
     `;
+}
+
+function closeEventPopup() {
+    document.getElementById('event-display-container').style.display = 'none';
 }
 
 /* ================= FORMS ================= */
