@@ -24,15 +24,15 @@ let reservations = [];
 let events = []; 
 let currentUserRole = null;
 
-// Fallback Data - ADDED LEGEND STEWART (AGAIN)
+// --- FALLBACK DATA (Edit this list to change defaults) ---
 const defaultTeam = [
     { name: "Russ", title: "Owner", desc: "The Visionary", img: "img/RussMarina.png" },
     { name: "Kaizo", title: "Co-Owner", desc: "Head Chef", img: "img/KaizoMarina.png" },
     { name: "Zeb", title: "Co-Owner", desc: "Operations", img: "img/ZebMarina.png" },
     { name: "Deon", title: "Co-Owner", desc: "PR Lead", img: "img/DeonMarina.png" },
     { name: "Aura", title: "Manager", desc: "Staff Lead", img: "img/AuraMarina.png" },
-    { name: "Legend Stewart", title: "Manager", desc: "Staff Lead", img: "img/LegendMarina.png" },
-    { name: "Legend Stewart", title: "Manager", desc: "Staff Lead", img: "img/LegendMarina.png" } // Added 2nd Legend Stewart
+    // NEW MANAGER ADDED HERE
+    { name: "Legend Stewart", title: "Manager", desc: "Staff Lead", img: "img/LegendMarina.png" }
 ];
 
 const defaultFinancials = [
@@ -73,8 +73,8 @@ document.addEventListener('DOMContentLoaded', () => {
     db.collection("events").orderBy("date", "asc").onSnapshot((snapshot) => {
         events = [];
         snapshot.forEach(doc => { let data = doc.data(); data.docId = doc.id; events.push(data); });
-        renderPublicEvents(); // Show on homepage
-        if(currentUserRole) renderAdminEvents(); // Show in admin
+        renderPublicEvents();
+        if(currentUserRole) renderAdminEvents(); 
     });
 
     setupBubbles();
@@ -129,10 +129,8 @@ function renderPublicMenu() {
     });
 }
 
-// Render Event POPUP
 function renderPublicEvents() {
     const container = document.getElementById('event-display-container');
-    // Get upcoming, CONFIRMED events
     const upcomingEvents = events.filter(e => e.status === 'confirmed' && new Date(e.date) > new Date());
     
     if (upcomingEvents.length === 0) {
@@ -140,7 +138,7 @@ function renderPublicEvents() {
         return;
     }
 
-    const nextEvent = upcomingEvents[0]; // Show nearest event
+    const nextEvent = upcomingEvents[0]; 
     const dateObj = new Date(nextEvent.date);
     const dateStr = dateObj.toLocaleDateString() + ' ' + dateObj.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
 
@@ -167,7 +165,6 @@ function closeEventPopup() {
 }
 
 /* ================= FORMS ================= */
-// Reservation
 document.getElementById('reservation-form').addEventListener('submit', (e) => {
     e.preventDefault();
     const newRes = {
@@ -185,7 +182,6 @@ document.getElementById('reservation-form').addEventListener('submit', (e) => {
     alert("Reservation Sent!"); closeModal('reservation-modal'); e.target.reset();
 });
 
-// Rental
 document.getElementById('rental-form').addEventListener('submit', (e) => {
     e.preventDefault();
     const rental = { name: document.getElementById('rent-name').value, type: document.getElementById('rent-type').value, staff: document.getElementById('rent-staffing').value };
@@ -193,7 +189,6 @@ document.getElementById('rental-form').addEventListener('submit', (e) => {
     alert("Inquiry Sent!"); closeModal('rental-modal'); e.target.reset();
 });
 
-// Application
 document.getElementById('application-form').addEventListener('submit', (e) => {
     e.preventDefault();
     const app = { discord: document.getElementById('app-discord').value, icName: document.getElementById('app-ic-name').value, id: document.getElementById('app-id').value, phone: document.getElementById('app-phone').value, storm: document.getElementById('app-storm').value, exp: document.getElementById('app-exp').value, mot: document.getElementById('app-mot').value };
@@ -278,7 +273,7 @@ function renderAdminReservations() {
 }
 function deleteRes(id) { if(confirm("Delete reservation?")) db.collection("reservations").doc(id).delete(); }
 
-// FINANCIALS & TEAM LOGIC
+// FINANCIALS LOGIC
 function renderAdminMenuView() { const div = document.getElementById('admin-menu-view-list'); div.innerHTML = '<ul>'; financialData.forEach(i => div.innerHTML += `<li>${i.name} ($${i.price})</li>`); div.innerHTML += '</ul>'; }
 function renderFinancialsTable() { const tb = document.getElementById('financial-body'); tb.innerHTML = ''; financialData.forEach((item, i) => { tb.innerHTML += `<tr><td><input value="${item.cat}" onchange="updFin(${i},'cat',this.value)"></td><td><input value="${item.name}" onchange="updFin(${i},'name',this.value)"></td><td><input value="${item.contents}" onchange="updFin(${i},'contents',this.value)"></td><td><input type="number" value="${item.cost}" onchange="updFin(${i},'cost',this.value)"></td><td><input type="number" value="${item.price}" onchange="updFin(${i},'price',this.value)"></td><td><button onclick="delFin(${i})">X</button></td></tr>`; }); }
 function updFin(i,k,v) { financialData[i][k] = (k==='cost'||k==='price') ? parseFloat(v) : v; }
@@ -286,6 +281,7 @@ function delFin(i) { financialData.splice(i,1); renderFinancialsTable(); }
 function addNewProductRow() { financialData.push({cat:"",name:"",contents:"",cost:0,price:0,status:""}); renderFinancialsTable(); }
 function saveFinancials() { db.collection("marina_data").doc("financials").update({items:financialData}).then(()=>alert("Saved")); }
 
+// TEAM LOGIC & RESET BUTTON
 function renderEditTeamForm() { 
     const c = document.getElementById('edit-team-container'); 
     c.innerHTML = ''; 
@@ -299,7 +295,25 @@ function renderEditTeamForm() {
             </div>
         `; 
     }); 
+    
+    // NEW: RESET BUTTON
+    c.innerHTML += `
+        <div style="margin-top:20px; border-top:2px solid #eee; padding-top:10px;">
+            <p style="color:red; font-size:0.8rem;">Warning: This button resets the live database to the code defaults (including Legend Stewart).</p>
+            <button class="btn btn-danger" onclick="resetTeamToDefaults()">⚠ Reset Team to Code Defaults</button>
+        </div>
+    `;
 }
 
 function updTeam(i,k,v) { teamData[i][k] = v; }
 function saveTeamChanges() { db.collection("marina_data").doc("team").update({members:teamData}).then(()=>alert("Saved")); }
+
+function resetTeamToDefaults() {
+    if(confirm("Are you sure? This will OVERWRITE the database with the list in script.js.")) {
+        db.collection("marina_data").doc("team").set({ members: defaultTeam })
+        .then(() => {
+            alert("Team reset! Refresh the page.");
+            location.reload();
+        });
+    }
+}
