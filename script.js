@@ -24,14 +24,15 @@ let reservations = [];
 let events = []; 
 let currentUserRole = null;
 
-// Fallback Data - ADDED LEGEND STEWART HERE
+// Fallback Data - ADDED LEGEND STEWART (AGAIN)
 const defaultTeam = [
     { name: "Russ", title: "Owner", desc: "The Visionary", img: "img/RussMarina.png" },
     { name: "Kaizo", title: "Co-Owner", desc: "Head Chef", img: "img/KaizoMarina.png" },
     { name: "Zeb", title: "Co-Owner", desc: "Operations", img: "img/ZebMarina.png" },
     { name: "Deon", title: "Co-Owner", desc: "PR Lead", img: "img/DeonMarina.png" },
     { name: "Aura", title: "Manager", desc: "Staff Lead", img: "img/AuraMarina.png" },
-    { name: "Legend Stewart", title: "Manager", desc: "Staff Lead", img: "img/LegendMarina.png" }
+    { name: "Legend Stewart", title: "Manager", desc: "Staff Lead", img: "img/LegendMarina.png" },
+    { name: "Legend Stewart", title: "Manager", desc: "Staff Lead", img: "img/LegendMarina.png" } // Added 2nd Legend Stewart
 ];
 
 const defaultFinancials = [
@@ -285,7 +286,6 @@ function delFin(i) { financialData.splice(i,1); renderFinancialsTable(); }
 function addNewProductRow() { financialData.push({cat:"",name:"",contents:"",cost:0,price:0,status:""}); renderFinancialsTable(); }
 function saveFinancials() { db.collection("marina_data").doc("financials").update({items:financialData}).then(()=>alert("Saved")); }
 
-// --- FIXED FUNCTION ---
 function renderEditTeamForm() { 
     const c = document.getElementById('edit-team-container'); 
     c.innerHTML = ''; 
@@ -300,7 +300,6 @@ function renderEditTeamForm() {
         `; 
     }); 
 }
-// ----------------------
 
 function updTeam(i,k,v) { teamData[i][k] = v; }
 function saveTeamChanges() { db.collection("marina_data").doc("team").update({members:teamData}).then(()=>alert("Saved")); }
