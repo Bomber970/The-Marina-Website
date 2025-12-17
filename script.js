@@ -21,16 +21,17 @@ const WEBHOOK_RENTAL = "https://discord.com/api/webhooks/1449134644997132329/SlY
 let teamData = [];
 let financialData = [];
 let reservations = [];
-let events = []; // NEW: Events Array
+let events = []; 
 let currentUserRole = null;
 
-// Fallback Data
+// Fallback Data - ADDED LEGEND STEWART HERE
 const defaultTeam = [
     { name: "Russ", title: "Owner", desc: "The Visionary", img: "img/RussMarina.png" },
     { name: "Kaizo", title: "Co-Owner", desc: "Head Chef", img: "img/KaizoMarina.png" },
     { name: "Zeb", title: "Co-Owner", desc: "Operations", img: "img/ZebMarina.png" },
     { name: "Deon", title: "Co-Owner", desc: "PR Lead", img: "img/DeonMarina.png" },
-    { name: "Aura", title: "Manager", desc: "Staff Lead", img: "img/AuraMarina.png" }
+    { name: "Aura", title: "Manager", desc: "Staff Lead", img: "img/AuraMarina.png" },
+    { name: "Legend Stewart", title: "Manager", desc: "Staff Lead", img: "img/LegendMarina.png" }
 ];
 
 const defaultFinancials = [
@@ -67,7 +68,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if(currentUserRole) renderAdminReservations();
     });
 
-    // NEW: Load Events
+    // Load Events
     db.collection("events").orderBy("date", "asc").onSnapshot((snapshot) => {
         events = [];
         snapshot.forEach(doc => { let data = doc.data(); data.docId = doc.id; events.push(data); });
@@ -127,7 +128,7 @@ function renderPublicMenu() {
     });
 }
 
-// NEW: Render Event POPUP
+// Render Event POPUP
 function renderPublicEvents() {
     const container = document.getElementById('event-display-container');
     // Get upcoming, CONFIRMED events
@@ -217,7 +218,7 @@ function setupAdminPanel() {
     
     renderAdminReservations();
     renderAdminMenuView();
-    renderAdminEvents(); // NEW
+    renderAdminEvents(); 
     if(currentUserRole === 'superadmin') { renderFinancialsTable(); renderEditTeamForm(); }
 }
 
@@ -228,7 +229,7 @@ function switchTab(tabId) {
     event.target.classList.add('active');
 }
 
-// EVENTS LOGIC (NEW)
+// EVENTS LOGIC
 function createNewEvent() {
     const title = document.getElementById('evt-title').value;
     const date = document.getElementById('evt-date').value;
@@ -241,11 +242,10 @@ function createNewEvent() {
 
     db.collection("events").add({
         title, date, image: img, location: loc, desc, isDinner,
-        status: 'pending', // Default to pending
+        status: 'pending', 
         timestamp: firebase.firestore.FieldValue.serverTimestamp()
     });
     alert("Event created! Status: Pending (Needs SADMIN confirmation)");
-    // Clear form
     document.getElementById('evt-title').value = ''; document.getElementById('evt-date').value = ''; 
     document.getElementById('evt-img').value = ''; document.getElementById('evt-loc').value = ''; document.getElementById('evt-desc').value = '';
 }
@@ -258,23 +258,12 @@ function renderAdminEvents() {
         if(ev.status === 'pending' && currentUserRole === 'superadmin') {
             confirmBtn = `<button class="btn btn-primary btn-small" onclick="confirmEvent('${ev.docId}')">Confirm</button> `;
         }
-        
         let statusColor = ev.status === 'confirmed' ? 'green' : 'orange';
-
-        tbody.innerHTML += `<tr>
-            <td>${ev.title}</td>
-            <td>${ev.date.replace('T', ' ')}</td>
-            <td>${ev.isDinner ? 'Dinner' : 'Event'}</td>
-            <td style="color:${statusColor}; font-weight:bold;">${ev.status.toUpperCase()}</td>
-            <td>
-                ${confirmBtn}
-                <button class="btn btn-danger btn-small" onclick="deleteEvent('${ev.docId}')">Delete</button>
-            </td>
-        </tr>`;
+        tbody.innerHTML += `<tr><td>${ev.title}</td><td>${ev.date.replace('T', ' ')}</td><td>${ev.isDinner ? 'Dinner' : 'Event'}</td><td style="color:${statusColor}; font-weight:bold;">${ev.status.toUpperCase()}</td><td>${confirmBtn}<button class="btn btn-danger btn-small" onclick="deleteEvent('${ev.docId}')">Delete</button></td></tr>`;
     });
 }
 
-function confirmEvent(docId) { if(confirm("Confirm this event? It will appear on homepage.")) db.collection("events").doc(docId).update({status: 'confirmed'}); }
+function confirmEvent(docId) { if(confirm("Confirm this event?")) db.collection("events").doc(docId).update({status: 'confirmed'}); }
 function deleteEvent(docId) { if(confirm("Delete this event?")) db.collection("events").doc(docId).delete(); }
 
 // RESERVATIONS LOGIC
@@ -295,6 +284,23 @@ function updFin(i,k,v) { financialData[i][k] = (k==='cost'||k==='price') ? parse
 function delFin(i) { financialData.splice(i,1); renderFinancialsTable(); }
 function addNewProductRow() { financialData.push({cat:"",name:"",contents:"",cost:0,price:0,status:""}); renderFinancialsTable(); }
 function saveFinancials() { db.collection("marina_data").doc("financials").update({items:financialData}).then(()=>alert("Saved")); }
-function renderEditTeamForm() { const c = document.getElementById('edit-team-container'); c.innerHTML = ''; teamData.forEach((m,i) => { c.innerHTML += `<div><input value="${m.name}" onchange="updTeam(${i},'name',this.value)"> <input value="${m.title}" onchange="updTeam(${i},'title',this.value)"></div>`; }); }
+
+// --- FIXED FUNCTION ---
+function renderEditTeamForm() { 
+    const c = document.getElementById('edit-team-container'); 
+    c.innerHTML = ''; 
+    teamData.forEach((m,i) => { 
+        c.innerHTML += `
+            <div style="background:#f9f9f9; padding:10px; border:1px solid #ddd; margin-bottom:10px; border-radius:5px;">
+                <label>Name:</label> <input value="${m.name}" onchange="updTeam(${i},'name',this.value)">
+                <label>Title:</label> <input value="${m.title}" onchange="updTeam(${i},'title',this.value)">
+                <label>Description:</label> <input value="${m.desc}" onchange="updTeam(${i},'desc',this.value)">
+                <label>Image URL:</label> <input value="${m.img}" onchange="updTeam(${i},'img',this.value)">
+            </div>
+        `; 
+    }); 
+}
+// ----------------------
+
 function updTeam(i,k,v) { teamData[i][k] = v; }
 function saveTeamChanges() { db.collection("marina_data").doc("team").update({members:teamData}).then(()=>alert("Saved")); }
