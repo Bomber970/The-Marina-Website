@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>The Marina | Sandy Shores</title>
-
+    
     <link rel="icon" type="image/png" href="Marina-Square-Samdy-Shores-v1.png">
 
     <link rel="stylesheet" href="styles.css">
@@ -19,8 +19,7 @@
         <div class="bubble"></div><div class="bubble"></div><div class="bubble"></div>
     </div>
 
-    <div id="event-display-container" style="display: none;">
-        </div>
+    <div id="event-display-container" style="display: none;"></div>
 
     <div class="main-wrapper">
         
@@ -54,6 +53,16 @@
             <button id="admin-login-btn" onclick="openModal('login-modal')">Staff Login</button>
         </footer>
 
+    </div>
+
+    <div id="team-modal" class="modal">
+        <div class="modal-content" style="text-align: center;">
+            <span class="close" onclick="closeModal('team-modal')">&times;</span>
+            <img id="tm-img" src="" alt="Profile" class="team-modal-img">
+            <h2 id="tm-name" style="margin-bottom: 5px;">Name</h2>
+            <h4 id="tm-title" style="color: #145da0; margin-top: 0;">Title</h4>
+            <p id="tm-desc" style="font-size: 1rem; color: #555;">Description goes here...</p>
+        </div>
     </div>
 
     <div id="menu-modal" class="modal">

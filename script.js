@@ -32,6 +32,7 @@ const defaultTeam = [
     { name: "Deon", title: "Co-Owner", desc: "PR Lead", img: "img/DeonMarina.png" },
     { name: "Aura", title: "Manager", desc: "Staff Lead", img: "img/AuraMarina.png" },
     // NEW MANAGER ADDED HERE
+    { name: "Legend Stewart", title: "Manager", desc: "Staff Lead", img: "img/LegendMarina.png" },
     { name: "Legend Stewart", title: "Manager", desc: "Staff Lead", img: "img/LegendMarina.png" }
 ];
 
@@ -104,9 +105,11 @@ function sendToDiscord(url, embedData) {
 }
 
 /* ================= PUBLIC RENDER FUNCTIONS ================= */
-function createTeamCard(member) {
+// UPDATED: Now accepts INDEX for click handler
+function createTeamCard(member, index) {
     if(!member) return '';
-    return `<div class="team-card">
+    // Pass the index to openTeamMember function
+    return `<div class="team-card" onclick="openTeamMember(${index})">
         <img src="${member.img}" class="team-photo" onerror="this.src='https://via.placeholder.com/80'">
         <h3>${member.name}</h3><p><strong>${member.title}</strong></p><p>${member.desc}</p>
     </div>`;
@@ -115,7 +118,23 @@ function createTeamCard(member) {
 function renderPublicTeam() {
     const container = document.getElementById('all-staff-container');
     container.innerHTML = '';
-    teamData.forEach(member => container.innerHTML += createTeamCard(member));
+    // Pass index to createTeamCard
+    teamData.forEach((member, index) => {
+        container.innerHTML += createTeamCard(member, index);
+    });
+}
+
+// NEW: Function to open team member in modal
+function openTeamMember(index) {
+    const member = teamData[index];
+    if(!member) return;
+
+    document.getElementById('tm-img').src = member.img || 'https://via.placeholder.com/150';
+    document.getElementById('tm-name').innerText = member.name;
+    document.getElementById('tm-title').innerText = member.title;
+    document.getElementById('tm-desc').innerText = member.desc;
+
+    openModal('team-modal');
 }
 
 function renderPublicMenu() {
@@ -296,10 +315,10 @@ function renderEditTeamForm() {
         `; 
     }); 
     
-    // NEW: RESET BUTTON
+    // RESET BUTTON
     c.innerHTML += `
         <div style="margin-top:20px; border-top:2px solid #eee; padding-top:10px;">
-            <p style="color:red; font-size:0.8rem;">Warning: This button resets the live database to the code defaults (including Legend Stewart).</p>
+            <p style="color:red; font-size:0.8rem;">Warning: This button resets the live database to the code defaults (including 2x Legend Stewart).</p>
             <button class="btn btn-danger" onclick="resetTeamToDefaults()">⚠ Reset Team to Code Defaults</button>
         </div>
     `;
